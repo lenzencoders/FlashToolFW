@@ -448,7 +448,7 @@ void UART_StateMachine(void) {
             break;
 				case UART_STATE_ANGLE_READING:
 					if(ReadingStr.len > 0){
-						AngleData_t angle_data = getAngle();
+						AngleData_t angle_data = getAngle1();
 						if(angle_data.time_of_life_counter != ReadingStr.ToL_cnt){
 							ReadingStr.ToL_cnt = angle_data.time_of_life_counter;
 							ReadingStr.AngleFIFO[ReadingStr.FIFO_current_ptr] = angle_data;

@@ -42,9 +42,14 @@ void BiSS_C_Master_HAL_Init(void);
  * 
  * @return AngleData_t 
  */
-static inline AngleData_t getAngle(void){
+static inline AngleData_t getAngle1(void){
 	extern volatile AngleData_t AngleData1;
 	return(AngleData1);
+}
+
+static inline AngleData_t getAngle2(void){
+	extern volatile AngleData_t AngleData2;
+	return(AngleData2);
 }
 
 void SetBiSS_SPI_Ch(BiSS_SPI_Ch_t ch_to_set);

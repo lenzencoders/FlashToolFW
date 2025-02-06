@@ -251,27 +251,30 @@ void BISS_Task_IRQHandler(void) {
 			else{
 				CRC6_State2 = CRC6_FAULT;
 			}					
-			if (BiSS_C_Master_StateMachine(BiSS1_SPI_rx.CDS) == CDM) {
-				switch(BiSS_SPI_Ch){
-					case BISS_SPI_CH_1:
+			switch(BiSS_SPI_Ch){
+				case BISS_SPI_CH_1:
+					if (BiSS_C_Master_StateMachine(BiSS1_SPI_rx.CDS) == CDM) {					
 						BiSS1_SPI_CDM_Req();
-						BiSS2_SPI_nCDM_Req();
-						break;
-					case BISS_SPI_CH_2:
+					}
+					else{
 						BiSS1_SPI_nCDM_Req();
+					}
+					BiSS2_SPI_nCDM_Req();
+					break;
+				case BISS_SPI_CH_2:
+					if (BiSS_C_Master_StateMachine(BiSS2_SPI_rx.CDS) == CDM) {					
 						BiSS2_SPI_CDM_Req();
-						break;
-					default:
-						BiSS1_SPI_nCDM_Req();
+					}
+					else{
 						BiSS2_SPI_nCDM_Req();
-						break;
-				}
-				BissRequest_CDM();
+					}
+					BiSS1_SPI_nCDM_Req();
+					break;
+				default:
+					BiSS1_SPI_nCDM_Req();
+					BiSS2_SPI_nCDM_Req();
+					break;
 			}
-			else {
-				BiSS1_SPI_nCDM_Req();
-				BiSS2_SPI_nCDM_Req();
-			}	
 			break;
 		case BISS_MODE_UART:		
 			if(LL_DMA_GetDataLength(DMA_BISS2_UART_RX) == 0){
@@ -603,4 +606,7 @@ static void BISS1_SPI_DeInit(void){
 }
 
 void SetBiSS_SPI_Ch(BiSS_SPI_Ch_t ch_to_set){
+	if(IsBiSSReqBusy() == BISS_REQ_OK){
+		BiSS_SPI_Ch = ch_to_set;
+	}	
 }
