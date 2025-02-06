@@ -22,6 +22,7 @@ static const enum {BISS_MODE_SPI, BISS_MODE_UART} BISS_MODE = BISS_MODE_SPI; // 
 #define DMA_LPUART_RX 					DMA1, LL_DMA_CHANNEL_1
 #define DMA_LPUART_TX 					DMA1, LL_DMA_CHANNEL_2
 
+/* BiSS1 SPI Config*/
 #define BISS1_SPI								SPI1
 #define MA1_PIN									GPIOA, LL_GPIO_PIN_5
 #define SLO1_PIN								GPIOA, LL_GPIO_PIN_6
@@ -29,15 +30,27 @@ static const enum {BISS_MODE_SPI, BISS_MODE_UART} BISS_MODE = BISS_MODE_SPI; // 
 #define DMA_BISS1_RX_Req				LL_DMAMUX_REQ_SPI1_RX
 #define DMA_BISS1_TX 						DMA1, LL_DMA_CHANNEL_4
 #define DMA_BISS1_TX_Req				LL_DMAMUX_REQ_SPI1_TX
-#define BISS1_SPI_PERF					LL_APB2_GRP1_PERIPH_SPI1
-#define BISS1_GPIO_PERF					LL_AHB2_GRP1_PERIPH_GPIOA
-	/* !!!! Check AF in Datasheet !!!! */
+
+#define BISS1_SPI_GRP_EN()			LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SPI1);
 #define BISS1_GPIO_SET_AF()     LL_GPIO_SetAFPin_0_7(MA1_PIN, LL_GPIO_AF_5); LL_GPIO_SetAFPin_0_7(SLO1_PIN, LL_GPIO_AF_5)
+/* End BiSS1 SPI Config*/
+
+/* BiSS2 SPI Config*/
+#define BISS2_SPI								SPI3
+#define MA2_PIN									GPIOB, LL_GPIO_PIN_3
+#define SLO2_PIN								GPIOB, LL_GPIO_PIN_4
+#define DMA_BISS2_RX 						DMA2, LL_DMA_CHANNEL_1
+#define DMA_BISS2_RX_Req				LL_DMAMUX_REQ_SPI3_RX
+#define DMA_BISS2_TX 						DMA2, LL_DMA_CHANNEL_2
+#define DMA_BISS2_TX_Req				LL_DMAMUX_REQ_SPI3_TX
+
+#define BISS2_SPI_GRP_EN()			LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_SPI3);
+#define BISS2_GPIO_SET_AF()     LL_GPIO_SetAFPin_0_7(MA2_PIN, LL_GPIO_AF_6); LL_GPIO_SetAFPin_0_7(SLO2_PIN, LL_GPIO_AF_6)
+/* End BiSS1 SPI Config*/
 
 #define BISS2_UART							USART2
 #define DMA_BISS2_UART_RX				DMA1, LL_DMA_CHANNEL_5
 				
-#define BISS_MA_SPI_PIN      		GPIOA, LL_GPIO_PIN_5
 //#define BISS_SLO_DE_PIN					GPIOA, LL_GPIO_PIN_10 /* RS485 Slave Out (uart in_out) Driver enable pin */
 #define BISS_MA_UART_PIN				GPIOA, LL_GPIO_PIN_9
 #define BISS_SLO_UART_PIN				GPIOB, LL_GPIO_PIN_4
@@ -46,6 +59,7 @@ static const enum {BISS_MODE_SPI, BISS_MODE_UART} BISS_MODE = BISS_MODE_SPI; // 
 #define PWR1_EN_PIN							GPIOB, LL_GPIO_PIN_0
 #define PWR2_EN_PIN							GPIOB, LL_GPIO_PIN_7
 #define DE1_PIN									GPIOA, LL_GPIO_PIN_10
+#define DE2_PIN									GPIOA, LL_GPIO_PIN_1
 #define TIM_RENISHAW						TIM3
 
 #define LED1_RED								GPIOA, LL_GPIO_PIN_11

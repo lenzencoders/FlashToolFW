@@ -54,9 +54,9 @@ static void MX_DMA_Init(void);
 static void MX_CORDIC_Init(void);
 static void MX_LPUART1_UART_Init(void);
 static void MX_TIM7_Init(void);
-static void MX_USART2_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -110,9 +110,9 @@ int main(void)
   MX_CORDIC_Init();
   MX_LPUART1_UART_Init();
   MX_TIM7_Init();
-  MX_USART2_UART_Init();
   MX_ADC1_Init();
   MX_TIM3_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 	/*
 	LL_GPIO_ResetOutputPin(DE1_PIN);
@@ -620,6 +620,7 @@ static void MX_DMA_Init(void)
   /* DMA controller clock enable */
   LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMAMUX1);
   LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA1);
+  LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA2);
 
   /* DMA interrupt init */
   /* DMA1_Channel1_IRQn interrupt configuration */
@@ -637,7 +638,12 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel5_IRQn interrupt configuration */
   NVIC_SetPriority(DMA1_Channel5_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
   NVIC_EnableIRQ(DMA1_Channel5_IRQn);
-
+  /* DMA2_Channel1_IRQn interrupt configuration */
+  NVIC_SetPriority(DMA2_Channel1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+  NVIC_EnableIRQ(DMA2_Channel1_IRQn);
+  /* DMA2_Channel2_IRQn interrupt configuration */
+  NVIC_SetPriority(DMA2_Channel2_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+  NVIC_EnableIRQ(DMA2_Channel2_IRQn);
 }
 
 /**
@@ -667,9 +673,6 @@ static void MX_GPIO_Init(void)
 
   /**/
   LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_12);
-
-  /**/
-  LL_GPIO_ResetOutputPin(GPIOB, LL_GPIO_PIN_5);
 
   /**/
   LL_GPIO_ResetOutputPin(GPIOB, LL_GPIO_PIN_6);
@@ -716,14 +719,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   GPIO_InitStruct.Alternate = LL_GPIO_AF_6;
-  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /**/
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_5;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /**/

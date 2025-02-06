@@ -36,17 +36,6 @@ typedef enum{
 }BiSSExternalState_t;
 
 /**
- * @struct AngleData_t
- * @brief Angle Data with time of life counter type
- * 
- */
-typedef struct{
-    uint32_t angle_data:24; /**< Value of Angle */
-    uint32_t time_of_life_counter:8; /**< Value of time of life countre to check
-	that angle was updated*/
-} AngleData_t;
-
-/**
  * @enum CDM_t
  * @brief BiSS C Control Data Master bit enumeration
  * 
@@ -108,16 +97,7 @@ BiSSExternalState_t IsBiSSReqBusy(void);
  * Should be called after reading/writing completion
  */
 void BiSSResetExternalState(void);
-	
-/**
- * @brief Get the Angle object
- * 
- * @return AngleData_t 
- */
-static inline AngleData_t getAngle(void){
-	extern volatile AngleData_t AngleData;
-	return(AngleData);
-}
+
 
 #ifdef __cplusplus
 }
