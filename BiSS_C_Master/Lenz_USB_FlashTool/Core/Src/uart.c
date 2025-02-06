@@ -13,6 +13,7 @@
 #include "stm32g4xx_ll_gpio.h"
 #include "string.h"
 #include "biss_c_master.h"
+#include "biss_c_master_hal.h"
 
 #define RX_BUFFER_SIZE 		256U
 //#define UART_LINE_SIZE		133U
@@ -70,8 +71,6 @@ typedef struct {
 	uint8_t data[HEX_DATA_LEN];
 
 } CommandQueue_t;
-
-
 
 volatile struct{
 	AngleData_t AngleFIFO[256];

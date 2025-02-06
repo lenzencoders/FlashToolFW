@@ -15,7 +15,7 @@ extern "C" {
 
 
 /* BISS C Config*/
-static const enum {BISS_MODE_SPI, BISS_MODE_UART} BISS_MODE = BISS_MODE_SPI; // BISS_MODE_UART
+static const enum {BISS_MODE_SPI, BISS_MODE_UART} BISS_MODE = BISS_MODE_UART; // BISS_MODE_UART
 	
 #define BISS_Task_TIM 					TIM7
 #define BISS_Task_IRQHandler 		TIM7_IRQHandler
