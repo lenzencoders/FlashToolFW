@@ -47,7 +47,7 @@ void UART_Transmit(UartTxStr_t *TxStr);
 
 uint8_t check_request(uint8_t *received_data);
 // Begin init Renishaw
-void InitRenishaw(void);
+//void InitRenishaw(void);
 // End init Renishaw
 void InitUart(void);
 void UART_StateMachine (void);

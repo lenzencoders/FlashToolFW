@@ -19,6 +19,7 @@
 #include "stm32g4xx_ll_spi.h"
 #include "stm32g4xx_ll_gpio.h"
 #include "stm32g4xx_ll_usart.h"
+#include "stm32g4xx_ll_bus.h"
 #include "uart.h"
 
 #define SPI_CR1_BISS_CDM    SPI_CR1_SSI | SPI_CR1_SPE | SPI_CR1_MSTR | SPI_CR1_SSM | ((0x5U << SPI_CR1_BR_Pos) & SPI_CR1_BR_Msk)
@@ -73,7 +74,7 @@ typedef union{
 
 // Test Renishaw Data
 //volatile uint32_t renishaw_angle = 0;
-volatile AngleDataRenishaw_t AngleDataRenishaw;
+//volatile AngleDataRenishaw_t AngleDataRenishaw;
 
 SPI_rx_t SPI_rx;
 USART_rx_t USART_rx;
@@ -116,7 +117,7 @@ __STATIC_INLINE uint8_t BISS_CRC6_Calc(uint32_t data){
 	return(crc);
 }
 
-
+static void MX_SPI1_Init(void);
 
 void BissRequest_CDM(void){
 	switch(BISS_MODE){
@@ -152,6 +153,7 @@ void BissRequest_CDM(void){
 void BissRequest_nCDM(void){
 	switch(BISS_MODE){
 		case BISS_MODE_SPI:		
+			 MX_SPI1_Init();
 			LL_DMA_DisableChannel(DMA_BISS_RX);
 			LL_DMA_DisableChannel(DMA_BISS_TX);
 			LL_SPI_DeInit(BISS_SPI);
@@ -235,7 +237,7 @@ void BISS_Task_IRQHandler(void) {
 	}
 	// DEBUG BEGIN
 	//Test Renishaw angle data
-	AngleDataRenishaw.angle_data= LL_TIM_GetCounter(TIM_RENISHAW);
+//	AngleDataRenishaw.angle_data= LL_TIM_GetCounter(TIM_RENISHAW);
 	// DEBUG END
 	// UART STATEMachine
 	UART_StateMachine();
@@ -247,8 +249,7 @@ void BiSS_C_Master_HAL_Init(void){
 			LL_GPIO_SetPinMode(BISS_MA_UART_PIN, LL_GPIO_MODE_INPUT);
 			LL_GPIO_SetPinMode(BISS_MA_SPI_PIN, LL_GPIO_MODE_ALTERNATE);
 			LL_GPIO_SetOutputPin(BISS_MA_SPI_PIN);
-			LL_GPIO_SetOutputPin(PWR2_EN_PIN);
-			LL_GPIO_ResetOutputPin(BISS_SLO_DE_PIN);
+			LL_GPIO_SetOutputPin(PWR1_EN_PIN);
 			LL_DMA_SetPeriphAddress(DMA_BISS_RX, (uint32_t) &BISS_SPI->DR);
 			LL_DMA_SetMemoryAddress(DMA_BISS_RX, (uint32_t) &SPI_rx.buf[3]);
 			LL_DMA_SetDataLength(DMA_BISS_RX, 5);	
@@ -275,5 +276,82 @@ void BiSS_C_Master_HAL_Init(void){
 			LL_DMA_EnableChannel(DMA_BISS_UART_RX);
 			break;		
 	}
+}
+
+
+/**
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI1_Init(void)
+{
+
+  /* USER CODE BEGIN SPI1_Init 0 */
+	LL_GPIO_SetOutputPin(DE1_PIN);
+	
+  /* USER CODE END SPI1_Init 0 */
+
+  LL_SPI_InitTypeDef SPI_InitStruct = {0};
+
+  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /* Peripheral clock enable */
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SPI1);
+
+  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
+  /**SPI1 GPIO Configuration
+  PA5   ------> SPI1_SCK
+  PA6   ------> SPI1_MISO
+  */
+	
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_5;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  GPIO_InitStruct.Alternate = LL_GPIO_AF_5;
+  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
+  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+
+  /* SPI1 DMA Init */
+
+  /* SPI1_RX Init */
+  LL_DMA_SetPeriphRequest(DMA_BISS_RX, DMA_BISS_RX_Req);
+
+  LL_DMA_SetDataTransferDirection(DMA_BISS_RX, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
+	
+  LL_DMA_SetChannelPriorityLevel(DMA_BISS_RX, LL_DMA_PRIORITY_LOW);
+
+  LL_DMA_SetMode(DMA_BISS_RX, LL_DMA_MODE_NORMAL);
+
+  LL_DMA_SetPeriphIncMode(DMA_BISS_RX, LL_DMA_PERIPH_NOINCREMENT);
+
+  LL_DMA_SetMemoryIncMode(DMA_BISS_RX, LL_DMA_MEMORY_INCREMENT);
+
+  LL_DMA_SetPeriphSize(DMA_BISS_RX, LL_DMA_PDATAALIGN_BYTE);
+
+  LL_DMA_SetMemorySize(DMA_BISS_RX, LL_DMA_MDATAALIGN_BYTE);
+
+  /* SPI1_TX Init */
+  LL_DMA_SetPeriphRequest(DMA_BISS_TX, DMA_BISS_TX_Req);
+
+  LL_DMA_SetDataTransferDirection(DMA_BISS_TX, LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
+
+  LL_DMA_SetChannelPriorityLevel(DMA_BISS_TX, LL_DMA_PRIORITY_LOW);
+
+  LL_DMA_SetMode(DMA_BISS_TX, LL_DMA_MODE_NORMAL);
+
+  LL_DMA_SetPeriphIncMode(DMA_BISS_TX, LL_DMA_PERIPH_NOINCREMENT);
+
+  LL_DMA_SetMemoryIncMode(DMA_BISS_TX, LL_DMA_MEMORY_INCREMENT);
+
+  LL_DMA_SetPeriphSize(DMA_BISS_TX, LL_DMA_PDATAALIGN_BYTE);
+
+  LL_DMA_SetMemorySize(DMA_BISS_TX, LL_DMA_MDATAALIGN_BYTE);
+
 }
 
