@@ -13,12 +13,30 @@
 extern "C" {
 #endif
 
+#include "stdint.h"
 /**
  * @brief BiSS C Master hardware abstruction layer initialization function
  * 
  */
 void BiSS_C_Master_HAL_Init(void);
+
+/**
+ * @struct AngleDataRenishaw_t
+ * 
+ */
+typedef struct{
+    uint16_t angle_data:16; /**< Value of Angle */
+} AngleDataRenishaw_t;
 	
+/**
+ * @brief Get the Angle Renishaw object
+ * 
+ * @return AngleDataRenishaw_t 
+ */
+static inline AngleDataRenishaw_t getAngleRenishaw(void){
+	extern volatile AngleDataRenishaw_t AngleDataRenishaw;
+	return(AngleDataRenishaw);
+}
 #ifdef __cplusplus
 }
 #endif

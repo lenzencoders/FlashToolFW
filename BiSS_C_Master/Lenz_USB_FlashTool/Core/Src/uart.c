@@ -13,6 +13,7 @@
 #include "stm32g4xx_ll_gpio.h"
 #include "string.h"
 #include "biss_c_master.h"
+#include "biss_c_master_hal.h"
 
 #define RX_BUFFER_SIZE 		256U
 //#define UART_LINE_SIZE		133U
@@ -82,8 +83,6 @@ typedef struct {
 
 } CommandQueue_t;
 
-
-
 volatile struct{
 	AngleData_t AngleFIFO[256];
 	uint16_t len;
@@ -132,7 +131,6 @@ volatile UART_Command_t UART_Command = 0;
 CommandQueue_t CommandQueue[QUEUE_SIZE];
 
 // DEBUG BEGIN
-// uint16_t current_readingStr_len = 0;
 uint32_t remaining_data = 0;
 // DEBUG END
 uint8_t queue_read_cnt = 0;

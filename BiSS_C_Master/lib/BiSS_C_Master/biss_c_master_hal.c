@@ -71,8 +71,7 @@ typedef union{
 	};
 }USART_rx_t;
 
-// Test Renishaw Data
-//volatile uint32_t renishaw_angle = 0;
+
 volatile AngleDataRenishaw_t AngleDataRenishaw;
 
 SPI_rx_t SPI_rx;
@@ -233,11 +232,9 @@ void BISS_Task_IRQHandler(void) {
 			}
 			break;
 	}
-	// DEBUG BEGIN
-	//Test Renishaw angle data
+	
 	AngleDataRenishaw.angle_data= LL_TIM_GetCounter(TIM_RENISHAW);
-	// DEBUG END
-	// UART STATEMachine
+	
 	UART_StateMachine();
 }
 
