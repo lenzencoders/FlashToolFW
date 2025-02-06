@@ -76,7 +76,8 @@ typedef union{
 //volatile uint32_t renishaw_angle = 0;
 //volatile AngleDataRenishaw_t AngleDataRenishaw;
 
-SPI_rx_t SPI_rx;
+SPI_rx_t BiSS1_SPI_rx;
+SPI_rx_t BiSS2_SPI_rx;
 USART_rx_t USART_rx;
 volatile CDS_t USART_CDS_last = CDS;
 volatile uint32_t BISS_SCD;
@@ -117,33 +118,33 @@ __STATIC_INLINE uint8_t BISS_CRC6_Calc(uint32_t data){
 	return(crc);
 }
 
-static void MX_SPI1_Init(void);
+static void BISS1_SPI_Init(void);
 
 void BissRequest_CDM(void){
 	switch(BISS_MODE){
 		case BISS_MODE_SPI:		
 			LL_GPIO_SetPinMode(BISS_MA_SPI_PIN, LL_GPIO_MODE_OUTPUT);
-			LL_DMA_DisableChannel(DMA_BISS_RX);
-			LL_DMA_DisableChannel(DMA_BISS_TX);
-			LL_SPI_DeInit(BISS_SPI);
-			BISS_SPI->CR1 = SPI_CR1_BISS_CDM;
-			BISS_SPI->CR2 = SPI_CR2_BISS_CFG;
-			LL_DMA_SetDataLength(DMA_BISS_TX, 5U); // TODO try 1U via define
-			LL_DMA_SetDataLength(DMA_BISS_RX, 5U); // TODO try 1U via define
-			LL_DMA_EnableChannel(DMA_BISS_TX);	    
+			LL_DMA_DisableChannel(DMA_BISS1_RX);
+			LL_DMA_DisableChannel(DMA_BISS1_TX);
+			LL_SPI_DeInit(BISS1_SPI);
+			BISS1_SPI->CR1 = SPI_CR1_BISS_CDM;
+			BISS1_SPI->CR2 = SPI_CR2_BISS_CFG;
+			LL_DMA_SetDataLength(DMA_BISS1_TX, 5U); // TODO try 1U via define
+			LL_DMA_SetDataLength(DMA_BISS1_RX, 5U); // TODO try 1U via define
+			LL_DMA_EnableChannel(DMA_BISS1_TX);	    
 			LL_GPIO_SetPinMode(BISS_MA_SPI_PIN, LL_GPIO_MODE_ALTERNATE);
-			LL_DMA_EnableChannel(DMA_BISS_RX);	
+			LL_DMA_EnableChannel(DMA_BISS1_RX);	
 			break;	
 		case BISS_MODE_UART:
-			LL_DMA_DisableChannel(DMA_BISS_UART_RX);
-			LL_DMA_SetDataLength(DMA_BISS_UART_RX, 4U);
-			LL_DMA_EnableChannel(DMA_BISS_UART_RX);	 
+			LL_DMA_DisableChannel(DMA_BISS2_UART_RX);
+			LL_DMA_SetDataLength(DMA_BISS2_UART_RX, 4U);
+			LL_DMA_EnableChannel(DMA_BISS2_UART_RX);	 
 			switch(RS485_ADR){
 				case RS485_ADR1:
-					LL_USART_TransmitData8(BISS_UART, RS485_CDM_ADR1_REQ);
+					LL_USART_TransmitData8(BISS2_UART, RS485_CDM_ADR1_REQ);
 					break;
 				case RS485_ADR2:
-					LL_USART_TransmitData8(BISS_UART, RS485_CDM_ADR2_REQ);
+					LL_USART_TransmitData8(BISS2_UART, RS485_CDM_ADR2_REQ);
 					break;
 			}
 			break;		
@@ -153,27 +154,26 @@ void BissRequest_CDM(void){
 void BissRequest_nCDM(void){
 	switch(BISS_MODE){
 		case BISS_MODE_SPI:		
-			 MX_SPI1_Init();
-			LL_DMA_DisableChannel(DMA_BISS_RX);
-			LL_DMA_DisableChannel(DMA_BISS_TX);
-			LL_SPI_DeInit(BISS_SPI);
-			BISS_SPI->CR1 = SPI_CR1_BISS_nCDM;
-			BISS_SPI->CR2 = SPI_CR2_BISS_CFG;
-			LL_DMA_SetDataLength(DMA_BISS_TX, 5U); // TODO try 1U via define
-			LL_DMA_SetDataLength(DMA_BISS_RX, 5U); // TODO try 1U via define
-			LL_DMA_EnableChannel(DMA_BISS_TX);	 
-			LL_DMA_EnableChannel(DMA_BISS_RX);	
+			LL_DMA_DisableChannel(DMA_BISS1_RX);
+			LL_DMA_DisableChannel(DMA_BISS1_TX);
+			LL_SPI_DeInit(BISS1_SPI);
+			BISS1_SPI->CR1 = SPI_CR1_BISS_nCDM;
+			BISS1_SPI->CR2 = SPI_CR2_BISS_CFG;
+			LL_DMA_SetDataLength(DMA_BISS1_TX, 5U); // TODO try 1U via define
+			LL_DMA_SetDataLength(DMA_BISS1_RX, 5U); // TODO try 1U via define
+			LL_DMA_EnableChannel(DMA_BISS1_TX);	 
+			LL_DMA_EnableChannel(DMA_BISS1_RX);	
 			break;	
 		case BISS_MODE_UART:
-			LL_DMA_DisableChannel(DMA_BISS_UART_RX);
-			LL_DMA_SetDataLength(DMA_BISS_UART_RX, 4U);
-			LL_DMA_EnableChannel(DMA_BISS_UART_RX);	 
+			LL_DMA_DisableChannel(DMA_BISS2_UART_RX);
+			LL_DMA_SetDataLength(DMA_BISS2_UART_RX, 4U);
+			LL_DMA_EnableChannel(DMA_BISS2_UART_RX);	 
 			switch(RS485_ADR){
 				case RS485_ADR1:
-					LL_USART_TransmitData8(BISS_UART, RS485_nCDM_ADR1_REQ);
+					LL_USART_TransmitData8(BISS2_UART, RS485_nCDM_ADR1_REQ);
 					break;
 				case RS485_ADR2:
-					LL_USART_TransmitData8(BISS_UART, RS485_nCDM_ADR2_REQ);
+					LL_USART_TransmitData8(BISS2_UART, RS485_nCDM_ADR2_REQ);
 					break;
 			}
 			break;		
@@ -184,7 +184,7 @@ void BISS_Task_IRQHandler(void) {
 	LL_TIM_ClearFlag_UPDATE(BISS_Task_TIM);
 	switch(BISS_MODE){
 		case BISS_MODE_SPI:		
-			BISS_SCD = __REV(SPI_rx.revSCD);
+			BISS_SCD = __REV(BiSS1_SPI_rx.revSCD);
 			if(BISS_CRC6_Calc(BISS_SCD >> 6) == (BISS_SCD & 0x3FU)){
 				CRC6_State = CRC6_OK;
 				AngleData.angle_data = BISS_SCD >> 8;
@@ -193,7 +193,7 @@ void BISS_Task_IRQHandler(void) {
 			else{
 				CRC6_State = CRC6_FAULT;
 			}				
-			if (BiSS_C_Master_StateMachine(SPI_rx.CDS) == CDM) {
+			if (BiSS_C_Master_StateMachine(BiSS1_SPI_rx.CDS) == CDM) {
 				BissRequest_CDM();
 			}
 			else {
@@ -201,7 +201,7 @@ void BISS_Task_IRQHandler(void) {
 			}	
 			break;
 		case BISS_MODE_UART:		
-			if(LL_DMA_GetDataLength(DMA_BISS_UART_RX) == 0){
+			if(LL_DMA_GetDataLength(DMA_BISS2_UART_RX) == 0){
 				if(BISS_CRC6_Calc(USART_rx.Data4CRC) == USART_rx.CRC6){
 					CRC6_State = CRC6_OK;
 					AngleData.angle_data = USART_rx.Pos;
@@ -245,35 +245,36 @@ void BISS_Task_IRQHandler(void) {
 
 void BiSS_C_Master_HAL_Init(void){
 	switch(BISS_MODE){
-		case BISS_MODE_SPI:			
+		case BISS_MODE_SPI:						
+			BISS1_SPI_Init();
 			LL_GPIO_SetPinMode(BISS_MA_UART_PIN, LL_GPIO_MODE_INPUT);
 			LL_GPIO_SetPinMode(BISS_MA_SPI_PIN, LL_GPIO_MODE_ALTERNATE);
 			LL_GPIO_SetOutputPin(BISS_MA_SPI_PIN);
 			LL_GPIO_SetOutputPin(PWR1_EN_PIN);
-			LL_DMA_SetPeriphAddress(DMA_BISS_RX, (uint32_t) &BISS_SPI->DR);
-			LL_DMA_SetMemoryAddress(DMA_BISS_RX, (uint32_t) &SPI_rx.buf[3]);
-			LL_DMA_SetDataLength(DMA_BISS_RX, 5);	
-			LL_DMA_SetPeriphAddress(DMA_BISS_TX, (uint32_t) &BISS_SPI->DR);
-			LL_DMA_SetDataLength(DMA_BISS_TX, 5);	
-			LL_SPI_EnableDMAReq_TX(BISS_SPI);
-			LL_SPI_EnableDMAReq_RX(BISS_SPI);
-			LL_SPI_Enable(BISS_SPI);
-			LL_DMA_EnableChannel(DMA_BISS_RX);
+			LL_DMA_SetPeriphAddress(DMA_BISS1_RX, (uint32_t) &BISS1_SPI->DR);
+			LL_DMA_SetMemoryAddress(DMA_BISS1_RX, (uint32_t) &BiSS1_SPI_rx.buf[3]);
+			LL_DMA_SetDataLength(DMA_BISS1_RX, 5);	
+			LL_DMA_SetPeriphAddress(DMA_BISS1_TX, (uint32_t) &BISS1_SPI->DR);
+			LL_DMA_SetDataLength(DMA_BISS1_TX, 5);	
+			LL_SPI_EnableDMAReq_TX(BISS1_SPI);
+			LL_SPI_EnableDMAReq_RX(BISS1_SPI);
+			LL_SPI_Enable(BISS1_SPI);
+			LL_DMA_EnableChannel(DMA_BISS1_RX);
 			break;
 		case BISS_MODE_UART:
 			LL_GPIO_SetOutputPin(PWR2_EN_PIN);
 			LL_GPIO_SetOutputPin(LED1_RED); // Set LED1 to high --> Green light
-			LL_USART_Disable(BISS_UART);		
+			LL_USART_Disable(BISS2_UART);		
 			LL_GPIO_SetPinMode(BISS_MA_SPI_PIN, LL_GPIO_MODE_INPUT);
 			LL_GPIO_SetPinMode(BISS_MA_UART_PIN, LL_GPIO_MODE_ALTERNATE);
-			LL_DMA_SetPeriphAddress(DMA_BISS_UART_RX, (uint32_t) &BISS_UART->RDR);
-			LL_DMA_SetMemoryAddress(DMA_BISS_UART_RX, (uint32_t) &USART_rx.u32);
-			LL_DMA_SetDataLength(DMA_BISS_UART_RX, 4);	
-			LL_USART_EnableDMAReq_RX(BISS_UART);
-			LL_USART_SetDEAssertionTime(BISS_UART, 16U);
-			LL_USART_SetDEDeassertionTime(BISS_UART, 16U);
-			LL_USART_Enable(BISS_UART);		
-			LL_DMA_EnableChannel(DMA_BISS_UART_RX);
+			LL_DMA_SetPeriphAddress(DMA_BISS2_UART_RX, (uint32_t) &BISS2_UART->RDR);
+			LL_DMA_SetMemoryAddress(DMA_BISS2_UART_RX, (uint32_t) &USART_rx.u32);
+			LL_DMA_SetDataLength(DMA_BISS2_UART_RX, 4);	
+			LL_USART_EnableDMAReq_RX(BISS2_UART);
+			LL_USART_SetDEAssertionTime(BISS2_UART, 16U);
+			LL_USART_SetDEDeassertionTime(BISS2_UART, 16U);
+			LL_USART_Enable(BISS2_UART);		
+			LL_DMA_EnableChannel(DMA_BISS2_UART_RX);
 			break;		
 	}
 }
@@ -284,74 +285,50 @@ void BiSS_C_Master_HAL_Init(void){
   * @param None
   * @retval None
   */
-static void MX_SPI1_Init(void)
+static void BISS1_SPI_Init(void)
 {
 
-  /* USER CODE BEGIN SPI1_Init 0 */
-	LL_GPIO_SetOutputPin(DE1_PIN);
-	
-  /* USER CODE END SPI1_Init 0 */
-
-  LL_SPI_InitTypeDef SPI_InitStruct = {0};
-
-  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* Peripheral clock enable */
-  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SPI1);
+  LL_APB2_GRP1_EnableClock(BISS1_SPI_PERF);
 
-  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
+  LL_AHB2_GRP1_EnableClock(BISS1_GPIO_PERF);
   /**SPI1 GPIO Configuration
-  PA5   ------> SPI1_SCK
-  PA6   ------> SPI1_MISO
+  MA1_PIN   ------> SPI1_SCK
+  SLO1_PIN   ------> SPI1_MISO
   */
+	LL_GPIO_SetOutputPin(DE1_PIN);
+	LL_GPIO_SetPinMode(DE1_PIN, LL_GPIO_MODE_OUTPUT);
 	
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_5;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  GPIO_InitStruct.Alternate = LL_GPIO_AF_5;
-  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
-  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
+	LL_GPIO_SetPinMode(MA1_PIN, LL_GPIO_MODE_ALTERNATE);
+	LL_GPIO_SetPinOutputType(MA1_PIN, LL_GPIO_OUTPUT_PUSHPULL);
+	LL_GPIO_SetPinMode(SLO1_PIN, LL_GPIO_MODE_ALTERNATE);
+	
+	BISS1_GPIO_SET_AF();
 
   /* SPI1 DMA Init */
 
   /* SPI1_RX Init */
-  LL_DMA_SetPeriphRequest(DMA_BISS_RX, DMA_BISS_RX_Req);
-
-  LL_DMA_SetDataTransferDirection(DMA_BISS_RX, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
-	
-  LL_DMA_SetChannelPriorityLevel(DMA_BISS_RX, LL_DMA_PRIORITY_LOW);
-
-  LL_DMA_SetMode(DMA_BISS_RX, LL_DMA_MODE_NORMAL);
-
-  LL_DMA_SetPeriphIncMode(DMA_BISS_RX, LL_DMA_PERIPH_NOINCREMENT);
-
-  LL_DMA_SetMemoryIncMode(DMA_BISS_RX, LL_DMA_MEMORY_INCREMENT);
-
-  LL_DMA_SetPeriphSize(DMA_BISS_RX, LL_DMA_PDATAALIGN_BYTE);
-
-  LL_DMA_SetMemorySize(DMA_BISS_RX, LL_DMA_MDATAALIGN_BYTE);
+	LL_DMA_DisableChannel(DMA_BISS1_RX);
+  LL_DMA_SetPeriphRequest(DMA_BISS1_RX, DMA_BISS1_RX_Req);
+  LL_DMA_SetDataTransferDirection(DMA_BISS1_RX, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);	
+  LL_DMA_SetChannelPriorityLevel(DMA_BISS1_RX, LL_DMA_PRIORITY_LOW);
+  LL_DMA_SetMode(DMA_BISS1_RX, LL_DMA_MODE_NORMAL);
+  LL_DMA_SetPeriphIncMode(DMA_BISS1_RX, LL_DMA_PERIPH_NOINCREMENT);
+  LL_DMA_SetMemoryIncMode(DMA_BISS1_RX, LL_DMA_MEMORY_INCREMENT);
+  LL_DMA_SetPeriphSize(DMA_BISS1_RX, LL_DMA_PDATAALIGN_BYTE);
+  LL_DMA_SetMemorySize(DMA_BISS1_RX, LL_DMA_MDATAALIGN_BYTE);
 
   /* SPI1_TX Init */
-  LL_DMA_SetPeriphRequest(DMA_BISS_TX, DMA_BISS_TX_Req);
-
-  LL_DMA_SetDataTransferDirection(DMA_BISS_TX, LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
-
-  LL_DMA_SetChannelPriorityLevel(DMA_BISS_TX, LL_DMA_PRIORITY_LOW);
-
-  LL_DMA_SetMode(DMA_BISS_TX, LL_DMA_MODE_NORMAL);
-
-  LL_DMA_SetPeriphIncMode(DMA_BISS_TX, LL_DMA_PERIPH_NOINCREMENT);
-
-  LL_DMA_SetMemoryIncMode(DMA_BISS_TX, LL_DMA_MEMORY_INCREMENT);
-
-  LL_DMA_SetPeriphSize(DMA_BISS_TX, LL_DMA_PDATAALIGN_BYTE);
-
-  LL_DMA_SetMemorySize(DMA_BISS_TX, LL_DMA_MDATAALIGN_BYTE);
+	LL_DMA_DisableChannel(DMA_BISS1_TX);
+  LL_DMA_SetPeriphRequest(DMA_BISS1_TX, DMA_BISS1_TX_Req);
+  LL_DMA_SetDataTransferDirection(DMA_BISS1_TX, LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
+  LL_DMA_SetChannelPriorityLevel(DMA_BISS1_TX, LL_DMA_PRIORITY_LOW);
+  LL_DMA_SetMode(DMA_BISS1_TX, LL_DMA_MODE_NORMAL);
+  LL_DMA_SetPeriphIncMode(DMA_BISS1_TX, LL_DMA_PERIPH_NOINCREMENT);
+  LL_DMA_SetMemoryIncMode(DMA_BISS1_TX, LL_DMA_MEMORY_INCREMENT);
+  LL_DMA_SetPeriphSize(DMA_BISS1_TX, LL_DMA_PDATAALIGN_BYTE);
+  LL_DMA_SetMemorySize(DMA_BISS1_TX, LL_DMA_MDATAALIGN_BYTE);
 
 }
 

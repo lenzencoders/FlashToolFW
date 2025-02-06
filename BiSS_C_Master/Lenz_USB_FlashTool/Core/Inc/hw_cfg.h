@@ -19,17 +19,23 @@ static const enum {BISS_MODE_SPI, BISS_MODE_UART} BISS_MODE = BISS_MODE_SPI; // 
 	
 #define BISS_Task_TIM 					TIM7
 #define BISS_Task_IRQHandler 		TIM7_IRQHandler
-#define BISS_SPI								SPI1
-#define BISS_UART								USART2
 #define DMA_LPUART_RX 					DMA1, LL_DMA_CHANNEL_1
 #define DMA_LPUART_TX 					DMA1, LL_DMA_CHANNEL_2
 
-#define DMA_BISS_RX 						DMA1, LL_DMA_CHANNEL_3
-#define DMA_BISS_RX_Req					LL_DMAMUX_REQ_SPI1_RX
-#define DMA_BISS_TX 						DMA1, LL_DMA_CHANNEL_4
-#define DMA_BISS_TX_Req					LL_DMAMUX_REQ_SPI1_TX
-#define DMA_BISS_UART_RX				DMA1, LL_DMA_CHANNEL_5
+#define BISS1_SPI								SPI1
+#define MA1_PIN									GPIOA, LL_GPIO_PIN_5
+#define SLO1_PIN								GPIOA, LL_GPIO_PIN_6
+#define DMA_BISS1_RX 						DMA1, LL_DMA_CHANNEL_3
+#define DMA_BISS1_RX_Req				LL_DMAMUX_REQ_SPI1_RX
+#define DMA_BISS1_TX 						DMA1, LL_DMA_CHANNEL_4
+#define DMA_BISS1_TX_Req				LL_DMAMUX_REQ_SPI1_TX
+#define BISS1_SPI_PERF					LL_APB2_GRP1_PERIPH_SPI1
+#define BISS1_GPIO_PERF					LL_AHB2_GRP1_PERIPH_GPIOA
+	/* !!!! Check AF in Datasheet !!!! */
+#define BISS1_GPIO_SET_AF()     LL_GPIO_SetAFPin_0_7(MA1_PIN, LL_GPIO_AF_5); LL_GPIO_SetAFPin_0_7(SLO1_PIN, LL_GPIO_AF_5)
 
+#define BISS2_UART							USART2
+#define DMA_BISS2_UART_RX				DMA1, LL_DMA_CHANNEL_5
 				
 #define BISS_MA_SPI_PIN      		GPIOA, LL_GPIO_PIN_5
 //#define BISS_SLO_DE_PIN					GPIOA, LL_GPIO_PIN_10 /* RS485 Slave Out (uart in_out) Driver enable pin */
