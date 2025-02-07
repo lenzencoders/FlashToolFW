@@ -265,6 +265,11 @@
           <WinNumber>1</WinNumber>
           <ItemText>UART_TX</ItemText>
         </Ww>
+        <Ww>
+          <count>23</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>UART_Error</ItemText>
+        </Ww>
       </WatchWindow1>
       <MemoryWindow1>
         <Mm>

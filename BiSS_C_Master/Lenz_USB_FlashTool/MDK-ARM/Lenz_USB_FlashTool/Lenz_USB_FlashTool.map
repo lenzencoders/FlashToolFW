@@ -761,15 +761,15 @@ Image Symbol Table
     [Anonymous Symbol]                       0x0800168a   Section        0  system_stm32g4xx.o(.text.SystemInit)
     [Anonymous Symbol]                       0x0800169c   Section        0  biss_c_master_hal.o(.text.TIM7_IRQHandler)
     [Anonymous Symbol]                       0x08001878   Section        0  uart.o(.text.UART_StateMachine)
-    [Anonymous Symbol]                       0x08001e44   Section        0  uart.o(.text.UART_Transmit)
-    [Anonymous Symbol]                       0x08001ea4   Section        0  stm32g4xx_it.o(.text.UsageFault_Handler)
-    [Anonymous Symbol]                       0x08001ea8   Section        0  main.o(.text.main)
-    $v0                                      0x080026b2   Number         0  fpinit.o(x$fpl$fpinit)
-    x$fpl$fpinit                             0x080026b2   Section       26  fpinit.o(x$fpl$fpinit)
-    CRC6_LUT                                 0x080026e4   Data         256  biss_c_master_hal.o(.rodata.CRC6_LUT)
-    [Anonymous Symbol]                       0x080026e4   Section        0  biss_c_master_hal.o(.rodata.CRC6_LUT)
-    tableCRC4                                0x080027e4   Data          16  biss_c_master.o(.rodata.cst16)
-    [Anonymous Symbol]                       0x080027e4   Section        0  biss_c_master.o(.rodata.cst16)
+    [Anonymous Symbol]                       0x08001f64   Section        0  uart.o(.text.UART_Transmit)
+    [Anonymous Symbol]                       0x08001fc4   Section        0  stm32g4xx_it.o(.text.UsageFault_Handler)
+    [Anonymous Symbol]                       0x08001fc8   Section        0  main.o(.text.main)
+    $v0                                      0x080027d2   Number         0  fpinit.o(x$fpl$fpinit)
+    x$fpl$fpinit                             0x080027d2   Section       26  fpinit.o(x$fpl$fpinit)
+    CRC6_LUT                                 0x08002804   Data         256  biss_c_master_hal.o(.rodata.CRC6_LUT)
+    [Anonymous Symbol]                       0x08002804   Section        0  biss_c_master_hal.o(.rodata.CRC6_LUT)
+    tableCRC4                                0x08002904   Data          16  biss_c_master.o(.rodata.cst16)
+    [Anonymous Symbol]                       0x08002904   Section        0  biss_c_master.o(.rodata.cst16)
     .bss                                     0x20000008   Section       96  libspace.o(.bss)
     Heap_Mem                                 0x20001f30   Data         512  startup_stm32g431xx.o(HEAP)
     HEAP                                     0x20001f30   Section      512  startup_stm32g431xx.o(HEAP)
@@ -991,17 +991,17 @@ Image Symbol Table
     SystemClock_Config                       0x080015b9   Thumb Code   210  main.o(.text.SystemClock_Config)
     SystemInit                               0x0800168b   Thumb Code    18  system_stm32g4xx.o(.text.SystemInit)
     TIM7_IRQHandler                          0x0800169d   Thumb Code   474  biss_c_master_hal.o(.text.TIM7_IRQHandler)
-    UART_StateMachine                        0x08001879   Thumb Code  1484  uart.o(.text.UART_StateMachine)
-    UART_Transmit                            0x08001e45   Thumb Code    96  uart.o(.text.UART_Transmit)
-    UsageFault_Handler                       0x08001ea5   Thumb Code     2  stm32g4xx_it.o(.text.UsageFault_Handler)
-    main                                     0x08001ea9   Thumb Code  2058  main.o(.text.main)
-    _fp_init                                 0x080026b3   Thumb Code    26  fpinit.o(x$fpl$fpinit)
-    __fplib_config_fpu_vfp                   0x080026cb   Thumb Code     0  fpinit.o(x$fpl$fpinit)
-    __fplib_config_pureend_doubles           0x080026cb   Thumb Code     0  fpinit.o(x$fpl$fpinit)
-    AHBPrescTable                            0x080026cc   Data          16  system_stm32g4xx.o(.rodata.AHBPrescTable)
-    APBPrescTable                            0x080026dc   Data           8  system_stm32g4xx.o(.rodata.APBPrescTable)
-    Region$$Table$$Base                      0x080027f4   Number         0  anon$$obj.o(Region$$Table)
-    Region$$Table$$Limit                     0x08002814   Number         0  anon$$obj.o(Region$$Table)
+    UART_StateMachine                        0x08001879   Thumb Code  1770  uart.o(.text.UART_StateMachine)
+    UART_Transmit                            0x08001f65   Thumb Code    96  uart.o(.text.UART_Transmit)
+    UsageFault_Handler                       0x08001fc5   Thumb Code     2  stm32g4xx_it.o(.text.UsageFault_Handler)
+    main                                     0x08001fc9   Thumb Code  2058  main.o(.text.main)
+    _fp_init                                 0x080027d3   Thumb Code    26  fpinit.o(x$fpl$fpinit)
+    __fplib_config_fpu_vfp                   0x080027eb   Thumb Code     0  fpinit.o(x$fpl$fpinit)
+    __fplib_config_pureend_doubles           0x080027eb   Thumb Code     0  fpinit.o(x$fpl$fpinit)
+    AHBPrescTable                            0x080027ec   Data          16  system_stm32g4xx.o(.rodata.AHBPrescTable)
+    APBPrescTable                            0x080027fc   Data           8  system_stm32g4xx.o(.rodata.APBPrescTable)
+    Region$$Table$$Base                      0x08002914   Number         0  anon$$obj.o(Region$$Table)
+    Region$$Table$$Limit                     0x08002934   Number         0  anon$$obj.o(Region$$Table)
     CRC6_State1                              0x20000000   Data           1  biss_c_master_hal.o(.data.CRC6_State1)
     CRC6_State2                              0x20000001   Data           1  biss_c_master_hal.o(.data.CRC6_State2)
     SystemCoreClock                          0x20000004   Data           4  system_stm32g4xx.o(.data.SystemCoreClock)
@@ -1040,9 +1040,9 @@ Memory Map of the image
 
   Image Entry point : 0x080001d9
 
-  Load Region LR_IROM1 (Base: 0x08000000, Size: 0x00002820, Max: 0x00020000, ABSOLUTE)
+  Load Region LR_IROM1 (Base: 0x08000000, Size: 0x00002940, Max: 0x00020000, ABSOLUTE)
 
-    Execution Region ER_IROM1 (Exec base: 0x08000000, Load base: 0x08000000, Size: 0x00002814, Max: 0x00020000, ABSOLUTE)
+    Execution Region ER_IROM1 (Exec base: 0x08000000, Load base: 0x08000000, Size: 0x00002934, Max: 0x00020000, ABSOLUTE)
 
     Exec Addr    Load Addr    Size         Type   Attr      Idx    E Section Name        Object
 
@@ -1151,27 +1151,28 @@ Memory Map of the image
     0x0800168a   0x0800168a   0x00000012   Code   RO          324    .text.SystemInit    system_stm32g4xx.o
     0x0800169c   0x0800169c   0x000001da   Code   RO          349    .text.TIM7_IRQHandler  biss_c_master_hal.o
     0x08001876   0x08001876   0x00000002   PAD
-    0x08001878   0x08001878   0x000005cc   Code   RO           23    .text.UART_StateMachine  uart.o
-    0x08001e44   0x08001e44   0x00000060   Code   RO           21    .text.UART_Transmit  uart.o
-    0x08001ea4   0x08001ea4   0x00000002   Code   RO           75    .text.UsageFault_Handler  stm32g4xx_it.o
-    0x08001ea6   0x08001ea6   0x00000002   PAD
-    0x08001ea8   0x08001ea8   0x0000080a   Code   RO           52    .text.main          main.o
-    0x080026b2   0x080026b2   0x0000001a   Code   RO          522    x$fpl$fpinit        fz_wm.l(fpinit.o)
-    0x080026cc   0x080026cc   0x00000010   Data   RO          329    .rodata.AHBPrescTable  system_stm32g4xx.o
-    0x080026dc   0x080026dc   0x00000008   Data   RO          330    .rodata.APBPrescTable  system_stm32g4xx.o
-    0x080026e4   0x080026e4   0x00000100   Data   RO          367    .rodata.CRC6_LUT    biss_c_master_hal.o
-    0x080027e4   0x080027e4   0x00000010   Data   RO          387    .rodata.cst16       biss_c_master.o
-    0x080027f4   0x080027f4   0x00000020   Data   RO          583    Region$$Table       anon$$obj.o
+    0x08001878   0x08001878   0x000006ea   Code   RO           23    .text.UART_StateMachine  uart.o
+    0x08001f62   0x08001f62   0x00000002   PAD
+    0x08001f64   0x08001f64   0x00000060   Code   RO           21    .text.UART_Transmit  uart.o
+    0x08001fc4   0x08001fc4   0x00000002   Code   RO           75    .text.UsageFault_Handler  stm32g4xx_it.o
+    0x08001fc6   0x08001fc6   0x00000002   PAD
+    0x08001fc8   0x08001fc8   0x0000080a   Code   RO           52    .text.main          main.o
+    0x080027d2   0x080027d2   0x0000001a   Code   RO          522    x$fpl$fpinit        fz_wm.l(fpinit.o)
+    0x080027ec   0x080027ec   0x00000010   Data   RO          329    .rodata.AHBPrescTable  system_stm32g4xx.o
+    0x080027fc   0x080027fc   0x00000008   Data   RO          330    .rodata.APBPrescTable  system_stm32g4xx.o
+    0x08002804   0x08002804   0x00000100   Data   RO          367    .rodata.CRC6_LUT    biss_c_master_hal.o
+    0x08002904   0x08002904   0x00000010   Data   RO          387    .rodata.cst16       biss_c_master.o
+    0x08002914   0x08002914   0x00000020   Data   RO          583    Region$$Table       anon$$obj.o
 
 
-    Execution Region RW_IRAM1 (Exec base: 0x20000000, Load base: 0x08002818, Size: 0x00002530, Max: 0x00008000, ABSOLUTE)
+    Execution Region RW_IRAM1 (Exec base: 0x20000000, Load base: 0x08002938, Size: 0x00002530, Max: 0x00008000, ABSOLUTE)
 
     Exec Addr    Load Addr    Size         Type   Attr      Idx    E Section Name        Object
 
-    0x20000000   0x08002818   0x00000001   Data   RW          357    .data.CRC6_State1   biss_c_master_hal.o
-    0x20000001   0x08002819   0x00000001   Data   RW          358    .data.CRC6_State2   biss_c_master_hal.o
-    0x20000002   0x0800281a   0x00000002   PAD
-    0x20000004   0x0800281c   0x00000004   Data   RW          328    .data.SystemCoreClock  system_stm32g4xx.o
+    0x20000000   0x08002938   0x00000001   Data   RW          357    .data.CRC6_State1   biss_c_master_hal.o
+    0x20000001   0x08002939   0x00000001   Data   RW          358    .data.CRC6_State2   biss_c_master_hal.o
+    0x20000002   0x0800293a   0x00000002   PAD
+    0x20000004   0x0800293c   0x00000004   Data   RW          328    .data.SystemCoreClock  system_stm32g4xx.o
     0x20000008        -       0x00000060   Zero   RW          448    .bss                c_w.l(libspace.o)
     0x20000068        -       0x00000004   Zero   RW          362    .bss.AngleData1     biss_c_master_hal.o
     0x2000006c        -       0x00000004   Zero   RW          365    .bss.AngleData2     biss_c_master_hal.o
@@ -1181,28 +1182,28 @@ Memory Map of the image
     0x20000098        -       0x00000008   Zero   RW          360    .bss.BiSS1_SPI_rx   biss_c_master_hal.o
     0x200000a0        -       0x00000008   Zero   RW          363    .bss.BiSS2_SPI_rx   biss_c_master_hal.o
     0x200000a8        -       0x00000001   Zero   RW          355    .bss.BiSS_SPI_Ch    biss_c_master_hal.o
-    0x200000a9   0x08002820   0x00000001   PAD
+    0x200000a9   0x08002940   0x00000001   PAD
     0x200000aa        -       0x000012d8   Zero   RW           40    .bss.CommandQueue   uart.o
-    0x20001382   0x08002820   0x00000002   PAD
+    0x20001382   0x08002940   0x00000002   PAD
     0x20001384        -       0x00000408   Zero   RW           42    .bss.ReadingStrEnc1  uart.o
     0x2000178c        -       0x00000408   Zero   RW           43    .bss.ReadingStrEnc2  uart.o
     0x20001b94        -       0x00000001   Zero   RW           26    .bss.UART_Error     uart.o
     0x20001b95        -       0x00000001   Zero   RW           30    .bss.UART_State     uart.o
     0x20001b96        -       0x00000100   Zero   RW           41    .bss.UART_TX        uart.o
-    0x20001c96   0x08002820   0x00000002   PAD
+    0x20001c96   0x08002940   0x00000002   PAD
     0x20001c98        -       0x00000004   Zero   RW           31    .bss.dma_rx_cnt     uart.o
     0x20001c9c        -       0x00000085   Zero   RW           29    .bss.hex_line_buffer  uart.o
     0x20001d21        -       0x00000001   Zero   RW           38    .bss.queue_cnt      uart.o
     0x20001d22        -       0x00000001   Zero   RW           36    .bss.queue_read_cnt  uart.o
     0x20001d23        -       0x00000001   Zero   RW           37    .bss.queue_write_cnt  uart.o
     0x20001d24        -       0x00000001   Zero   RW           39    .bss.retry_cnt      uart.o
-    0x20001d25   0x08002820   0x00000003   PAD
+    0x20001d25   0x08002940   0x00000003   PAD
     0x20001d28        -       0x00000004   Zero   RW           32    .bss.uart_expected_length  uart.o
     0x20001d2c        -       0x00000001   Zero   RW           33    .bss.uart_length    uart.o
-    0x20001d2d   0x08002820   0x00000003   PAD
+    0x20001d2d   0x08002940   0x00000003   PAD
     0x20001d30        -       0x00000100   Zero   RW           27    .bss.usb_rx_buffer  uart.o
     0x20001e30        -       0x000000fc   Zero   RW           28    .bss.usb_tx_buffer  uart.o
-    0x20001f2c   0x08002820   0x00000004   PAD
+    0x20001f2c   0x08002940   0x00000004   PAD
     0x20001f30        -       0x00000200   Zero   RW            2    HEAP                startup_stm32g431xx.o
     0x20002130        -       0x00000400   Zero   RW            1    STACK               startup_stm32g431xx.o
 
@@ -1228,12 +1229,12 @@ Image component sizes
        292         48          0          0          0       5780   stm32g4xx_ll_usart.o
         52          0          0          0          0       8824   stm32g4xx_ll_utils.o
         18          0         24          4          0       2779   system_stm32g4xx.o
-      1706         42          0          0       7800      12369   uart.o
+      1992         44          0          0       7800      12609   uart.o
 
     ----------------------------------------------------------------------
-      8596        160        800          8       9416     120518   Object Totals
+      8884        162        800          8       9416     120758   Object Totals
          0          0         32          0          0          0   (incl. Generated)
-        18          0          0          2         15          0   (incl. Padding)
+        20          0          0          2         15          0   (incl. Padding)
 
     ----------------------------------------------------------------------
 
@@ -1286,15 +1287,15 @@ Image component sizes
 
       Code (inc. data)   RO Data    RW Data    ZI Data      Debug   
 
-      9460        176        800          8       9512     120922   Grand Totals
-      9460        176        800          8       9512     120922   ELF Image Totals
-      9460        176        800          8          0          0   ROM Totals
+      9748        178        800          8       9512     121162   Grand Totals
+      9748        178        800          8       9512     121162   ELF Image Totals
+      9748        178        800          8          0          0   ROM Totals
 
 ==============================================================================
 
-    Total RO  Size (Code + RO Data)                10260 (  10.02kB)
+    Total RO  Size (Code + RO Data)                10548 (  10.30kB)
     Total RW  Size (RW Data + ZI Data)              9520 (   9.30kB)
-    Total ROM Size (Code + RO Data + RW Data)      10268 (  10.03kB)
+    Total ROM Size (Code + RO Data + RW Data)      10556 (  10.31kB)
 
 ==============================================================================
 
