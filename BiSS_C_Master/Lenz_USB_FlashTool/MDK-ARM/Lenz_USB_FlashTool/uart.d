@@ -16,4 +16,5 @@ lenz_usb_flashtool/uart.o: ..\Core\Src\uart.c ..\Core\Inc\uart.h \
   ..\Drivers\STM32G4xx_HAL_Driver\Inc\stm32g4xx_ll_tim.h \
   ..\Drivers\STM32G4xx_HAL_Driver\Inc\stm32g4xx_ll_gpio.h \
   C:\Keil_v5\ARM\ARMCLANG\Bin\..\include\string.h \
-  ..\..\lib\BiSS_C_Master\biss_c_master.h
+  ..\..\lib\BiSS_C_Master\biss_c_master.h \
+  ..\..\lib\BiSS_C_Master\biss_c_master_hal.h

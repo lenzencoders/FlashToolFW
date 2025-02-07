@@ -84,7 +84,7 @@ typedef enum{
 SPI_rx_t BiSS1_SPI_rx;
 SPI_rx_t BiSS2_SPI_rx;
 USART_rx_t USART_rx;
-volatile BiSS_SPI_Ch_t BiSS_SPI_Ch = BISS_SPI_CH_1;
+volatile BiSS_SPI_Ch_t BiSS_SPI_Ch = BISS_SPI_CH_1; // BISS_SPI_CH_1 or BISS_SPI_CH_2
 volatile CDS_t USART_CDS_last = CDS;
 volatile uint32_t BISS1_SCD;
 volatile uint32_t BISS2_SCD;

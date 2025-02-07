@@ -31,6 +31,7 @@ typedef enum{
 	BISS_SPI_CH_2,
 }BiSS_SPI_Ch_t;
 
+extern volatile BiSS_SPI_Ch_t BiSS_SPI_Ch;
 /**
  * @brief BiSS C Master hardware abstruction layer initialization function
  * 
