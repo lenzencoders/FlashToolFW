@@ -58,6 +58,7 @@ struct{
 	volatile BISS_State_t State;
 	volatile BiSSExternalState_t ExternalState;
 	volatile uint32_t Bit_Mask;
+	volatile BiSSFaultState_t FaultState;
 }BiSS;
 
 BiSSExternalState_t IsBiSSReqBusy(void){
@@ -194,6 +195,7 @@ CDM_t BiSS_C_Master_StateMachine(CDS_t CDS_in) {
 				}
 				else{
 					ret = nCDM;
+					BiSS.FaultState = BISS_FAULT_IDL;
 					BiSS.State = BISS_STATE_ABORT;
 				}	
 			}
@@ -220,6 +222,7 @@ CDM_t BiSS_C_Master_StateMachine(CDS_t CDS_in) {
 				}
 				else{
 					ret = nCDM;					
+					BiSS.FaultState = BISS_FAULT_READ_CRC;
 					BiSS.State = BISS_STATE_ABORT;
 				}
 			}
@@ -238,6 +241,7 @@ CDM_t BiSS_C_Master_StateMachine(CDS_t CDS_in) {
 						case WRITE_FIRST:
 							BiSS.WriteStopBitCheck = WRITE_CONT;
 							if(CDS_in == nCDS){// Write bit check
+								BiSS.FaultState = BISS_FAULT_WRITE;
 								BiSS.State = BISS_STATE_ABORT;
 								ret = nCDM;							
 							}
@@ -248,6 +252,7 @@ CDM_t BiSS_C_Master_StateMachine(CDS_t CDS_in) {
 							break;					
 						case WRITE_CONT:
 							if(CDS_in == CDS){// Stop bit check
+								BiSS.FaultState = BISS_FAULT_WRITE;
 								BiSS.State = BISS_STATE_ABORT;
 								ret = nCDM;
 							}
@@ -263,11 +268,13 @@ CDM_t BiSS_C_Master_StateMachine(CDS_t CDS_in) {
 								BiSS.StopCnt = 14;
 							}
 							else{		
+								BiSS.FaultState = BISS_FAULT_WRITE;
 								BiSS.State = BISS_STATE_ABORT;
 							}
 							ret = nCDM;
 							break;
 						default:
+							BiSS.FaultState = BISS_FAULT_WRITE;
 							BiSS.State = BISS_STATE_ABORT;
 							ret = nCDM;
 					}
@@ -278,6 +285,7 @@ CDM_t BiSS_C_Master_StateMachine(CDS_t CDS_in) {
 					BiSS.CDMCnt = 2U;	
 					BiSS.ShiftCDS = 0;
 					if(CDS_in == nCDS){//Start bit check
+						BiSS.FaultState = BISS_FAULT_WRITE;
 						BiSS.State = BISS_STATE_ABORT;
 						ret = nCDM;
 					}
@@ -311,11 +319,13 @@ CDM_t BiSS_C_Master_StateMachine(CDS_t CDS_in) {
 					}
 					else{
 						ret = nCDM;
+						BiSS.FaultState = BISS_FAULT_WRITE;
 						BiSS.State = BISS_STATE_ABORT;					
 					}
 					break;
 				
 				default:
+					BiSS.FaultState = BISS_FAULT_WRITE;
 					BiSS.State = BISS_STATE_ABORT;
 			} 
 			break;
@@ -350,4 +360,8 @@ CDM_t BiSS_C_Master_StateMachine(CDS_t CDS_in) {
 
 void BiSSResetExternalState(void){	
 	BiSS.ExternalState = BISS_REQ_OK;
+}
+
+BiSSFaultState_t BiSSGetFaultState(void){
+	return(BiSS.FaultState);
 }
