@@ -132,6 +132,26 @@ static void BISS1_SPI_DeInit(void);
 static void BISS2_SPI_Init(void);
 static void BISS2_SPI_DeInit(void);
 
+static void LED1TurnRed(void){
+	LL_GPIO_SetOutputPin(LED1_GREEN);
+	LL_GPIO_ResetOutputPin(LED1_RED);
+}
+
+static void LED1TurnGreen(void){
+	LL_GPIO_SetOutputPin(LED1_RED);
+	LL_GPIO_ResetOutputPin(LED1_GREEN);
+}
+
+static void LED2TurnRed(void){
+	LL_GPIO_SetOutputPin(LED2_GREEN);
+	LL_GPIO_ResetOutputPin(LED2_RED);
+}
+
+static void LED2TurnGreen(void){
+	LL_GPIO_SetOutputPin(LED2_RED);
+	LL_GPIO_ResetOutputPin(LED2_GREEN);
+}
+
 static void BiSS1_SPI_nCDM_Req(void){
 	LL_DMA_DisableChannel(DMA_BISS1_RX);
 	LL_DMA_DisableChannel(DMA_BISS1_TX);
@@ -238,8 +258,10 @@ void BISS_Task_IRQHandler(void) {
 				CRC6_State1 = CRC6_OK;
 				AngleData1.angle_data = BISS1_SCD >> 8;
 				AngleData1.time_of_life_counter++;
+				LED1TurnGreen();
 			}
 			else{
+				LED1TurnRed();
 				CRC6_State1 = CRC6_FAULT;
 			}			
 			BISS2_SCD = __REV(BiSS2_SPI_rx.revSCD);
@@ -247,8 +269,10 @@ void BISS_Task_IRQHandler(void) {
 				CRC6_State2 = CRC6_OK;
 				AngleData2.angle_data = BISS2_SCD >> 8;
 				AngleData2.time_of_life_counter++;
+				LED2TurnGreen();
 			}
 			else{
+				LED2TurnRed();
 				CRC6_State2 = CRC6_FAULT;
 			}					
 			switch(BiSS_SPI_Ch){
@@ -320,6 +344,8 @@ void BISS_Task_IRQHandler(void) {
 }
 
 void BiSS_C_Master_HAL_Init(void){
+	LED1TurnRed();
+	LED2TurnRed();
 	switch(BISS_MODE){
 		case BISS_MODE_SPI:						
 			BISS1_SPI_Init();
