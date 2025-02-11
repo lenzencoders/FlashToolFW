@@ -26,6 +26,14 @@ typedef struct{
 	that angle was updated*/
 } AngleData_t;
 
+/**
+ * @struct AngleDataRenishaw_t
+ * 
+ */
+typedef struct{
+    uint16_t angle_data:16; /**< Value of Angle */
+} AngleDataRenishaw_t;
+
 typedef enum{
 	BISS_SPI_CH_1,
 	BISS_SPI_CH_2,
@@ -37,7 +45,7 @@ extern volatile BiSS_SPI_Ch_t BiSS_SPI_Ch;
  * 
  */
 void BiSS_C_Master_HAL_Init(void);
-		
+
 /**
  * @brief Get the Angle object
  * 
@@ -51,6 +59,16 @@ static inline AngleData_t getAngle1(void){
 static inline AngleData_t getAngle2(void){
 	extern volatile AngleData_t AngleData2;
 	return(AngleData2);
+}
+
+/**
+ * @brief Get the Angle Renishaw object
+ * 
+ * @return AngleDataRenishaw_t 
+ */
+static inline AngleDataRenishaw_t getAngleRenishaw(void){
+	extern volatile AngleDataRenishaw_t AngleDataRenishaw;
+	return(AngleDataRenishaw);
 }
 
 void SetBiSS_SPI_Ch(BiSS_SPI_Ch_t ch_to_set);

@@ -27,6 +27,7 @@ typedef enum{
 	UART_COMMAND_POWER_OFF  = 0x0BU,
 	UART_COMMAND_POWER_ON   = 0x0CU,
 	UART_COMMAND_WRITE_REG  = 0x0DU,
+	UART_COMMAND_READ_ANGLE_TWO_ENC_AB_UART = 0x79U,
 	UART_COMMAND_READ_ANGLE_TWO_ENC_SPI = 0x80U,
 	UART_COMMAND_READ_ANGLE = 0x81U,
 	UART_COMMAND_READ_REG 	= 0x82U,
@@ -48,9 +49,7 @@ extern UartTxStr_t UART_TX;
 void UART_Transmit(UartTxStr_t *TxStr);
 
 uint8_t check_request(uint8_t *received_data);
-// Begin init Renishaw
-//void InitRenishaw(void);
-// End init Renishaw
+
 void InitUart(void);
 void UART_StateMachine (void);
 	

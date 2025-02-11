@@ -77,9 +77,6 @@ typedef enum{
 	CRC6_OK,CRC6_FAULT
 }CRC_State_t;
 
-// Test Renishaw Data
-//volatile uint32_t renishaw_angle = 0;
-//volatile AngleDataRenishaw_t AngleDataRenishaw;
 
 SPI_rx_t BiSS1_SPI_rx;
 SPI_rx_t BiSS2_SPI_rx;
@@ -90,6 +87,7 @@ volatile uint32_t BISS1_SCD;
 volatile uint32_t BISS2_SCD;
 volatile AngleData_t AngleData1;
 volatile AngleData_t AngleData2;
+volatile AngleDataRenishaw_t AngleDataRenishaw;
 volatile CRC_State_t CRC6_State1 = CRC6_FAULT;
 volatile CRC_State_t CRC6_State2 = CRC6_FAULT;
 volatile CDM_t last_CDM = CDM;
@@ -131,6 +129,7 @@ static void BISS1_SPI_Init(void);
 static void BISS1_SPI_DeInit(void);
 static void BISS2_SPI_Init(void);
 static void BISS2_SPI_DeInit(void);
+static void InitQuadratureRenishaw(void);
 
 static void BiSS1_SPI_nCDM_Req(void){
 	LL_DMA_DisableChannel(DMA_BISS1_RX);
@@ -311,11 +310,8 @@ void BISS_Task_IRQHandler(void) {
 			}
 			break;
 	}
-	// DEBUG BEGIN
-	//Test Renishaw angle data
-//	AngleDataRenishaw.angle_data= LL_TIM_GetCounter(TIM_RENISHAW);
-	// DEBUG END
-	// UART STATEMachine
+	AngleDataRenishaw.angle_data= LL_TIM_GetCounter(TIM_RENISHAW);
+	
 	UART_StateMachine();
 }
 
@@ -329,7 +325,7 @@ void BiSS_C_Master_HAL_Init(void){
 			LL_GPIO_SetOutputPin(PWR2_EN_PIN);
 			LL_GPIO_SetOutputPin(LED1_RED); // Set LED1 to high --> Green light
 			LL_USART_Disable(BISS2_UART);		
-			LL_GPIO_SetPinMode(MA2_PIN, LL_GPIO_MODE_ANALOG);
+			LL_GPIO_SetPinMode(MA2_PIN, LL_GPIO_MODE_ALTERNATE); // LL_GPIO_MODE_ANALOG
 			LL_GPIO_SetPinMode(BISS_MA_UART_PIN, LL_GPIO_MODE_ALTERNATE);
 			LL_DMA_SetPeriphAddress(DMA_BISS2_UART_RX, (uint32_t) &BISS2_UART->RDR);
 			LL_DMA_SetMemoryAddress(DMA_BISS2_UART_RX, (uint32_t) &USART_rx.u32);
@@ -339,6 +335,7 @@ void BiSS_C_Master_HAL_Init(void){
 			LL_USART_SetDEDeassertionTime(BISS2_UART, 16U);
 			LL_USART_Enable(BISS2_UART);		
 			LL_DMA_EnableChannel(DMA_BISS2_UART_RX);
+			InitQuadratureRenishaw();
 			break;		
 	}
 }
@@ -598,6 +595,12 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 2 */
 
+}
+
+static void InitQuadratureRenishaw(void){
+	LL_GPIO_ResetOutputPin(DE1_PIN); 
+	LL_GPIO_SetOutputPin(PWR1_EN_PIN);
+	LL_TIM_EnableCounter(TIM_RENISHAW);
 }
 
 static void BISS1_SPI_DeInit(void){

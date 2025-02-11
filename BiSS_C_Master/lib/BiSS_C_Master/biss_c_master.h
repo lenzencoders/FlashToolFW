@@ -36,6 +36,18 @@ typedef enum{
 }BiSSExternalState_t;
 
 /**
+ * @enum BiSSFaultState_t
+ * @brief BiSS C Master Fault States enumeration 
+ * 
+ */
+typedef enum{
+	BISS_NO_FAULTS = 0u, /**< OK State */
+	BISS_FAULT_IDL = 1u,	/**< ID Lock fault returned */
+	BISS_FAULT_WRITE, /**< Writing fault */
+	BISS_FAULT_READ_CRC /**< CRC of read data fault */
+}BiSSFaultState_t;
+
+/**
  * @enum CDM_t
  * @brief BiSS C Control Data Master bit enumeration
  * 
@@ -98,6 +110,11 @@ BiSSExternalState_t IsBiSSReqBusy(void);
  */
 void BiSSResetExternalState(void);
 
+/**
+ * @brief BiSS fault state request
+ * @return BiSSFaultState_t 
+ */
+BiSSFaultState_t BiSSGetFaultState(void);
 
 #ifdef __cplusplus
 }

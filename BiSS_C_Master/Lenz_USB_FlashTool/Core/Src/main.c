@@ -114,18 +114,9 @@ int main(void)
   MX_TIM3_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-	/*
-	LL_GPIO_ResetOutputPin(DE1_PIN);
-	LL_GPIO_SetOutputPin(PWR1_EN_PIN);
-	LL_TIM_EnableCounter(TIM_RENISHAW);
-	uint32_t counter_value = 0;
-	counter_value = LL_TIM_GetCounter(TIM_RENISHAW);
-	*/
-//	InitRenishaw();
+
 	InitUart();
-	
 	BiSS_C_Master_HAL_Init();
-	
 	
   /* USER CODE END 2 */
 
@@ -374,10 +365,7 @@ static void MX_LPUART1_UART_Init(void)
   LL_DMA_SetMemorySize(DMA1, LL_DMA_CHANNEL_2, LL_DMA_MDATAALIGN_BYTE);
 
   /* USER CODE BEGIN LPUART1_Init 1 */
- 
- 
-		
-		
+ 	
   /* USER CODE END LPUART1_Init 1 */
   LPUART_InitStruct.PrescalerValue = LL_LPUART_PRESCALER_DIV1;
   LPUART_InitStruct.BaudRate = 12000000;
@@ -524,17 +512,19 @@ static void MX_TIM3_Init(void)
 {
 
   /* USER CODE BEGIN TIM3_Init 0 */
-
+	
+	LL_TIM_SetRemap(TIM3, LL_TIM_TIM3_TI1_RMP_COMP1);
+	
   /* USER CODE END TIM3_Init 0 */
-
+	
   LL_TIM_InitTypeDef TIM_InitStruct = {0};
 
   LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* Peripheral clock enable */
   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM3);
-
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
+	
   /**TIM3 GPIO Configuration
   PA4   ------> TIM3_CH2
   */
@@ -545,10 +535,20 @@ static void MX_TIM3_Init(void)
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   GPIO_InitStruct.Alternate = LL_GPIO_AF_2;
   LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
+	
   /* USER CODE BEGIN TIM3_Init 1 */
-
+	/**TIM3 GPIO Configuration
+  PA6   ------> TIM3_CH1
+  */	
+	GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  GPIO_InitStruct.Alternate = LL_GPIO_AF_2;
+  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
   /* USER CODE END TIM3_Init 1 */
+	
   TIM_InitStruct.Prescaler = 0;
   TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
   TIM_InitStruct.Autoreload = 65535;
@@ -566,7 +566,8 @@ static void MX_TIM3_Init(void)
   LL_TIM_IC_SetPolarity(TIM3, LL_TIM_CHANNEL_CH2, LL_TIM_IC_POLARITY_RISING);
   LL_TIM_SetTriggerOutput(TIM3, LL_TIM_TRGO_RESET);
   LL_TIM_DisableMasterSlaveMode(TIM3);
-  LL_TIM_SetRemap(TIM3, LL_TIM_TIM3_TI1_RMP_COMP1);
+  //LL_TIM_SetRemap(TIM3, LL_TIM_TIM3_TI1_RMP_COMP1);
+	
   /* USER CODE BEGIN TIM3_Init 2 */
 
   /* USER CODE END TIM3_Init 2 */
