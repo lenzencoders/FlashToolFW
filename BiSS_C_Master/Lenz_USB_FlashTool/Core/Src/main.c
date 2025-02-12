@@ -599,11 +599,8 @@ static void MX_TIM7_Init(void)
   /* USER CODE END TIM7_Init 1 */
   TIM_InitStruct.Prescaler = 0;
   TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-#ifdef CH1_SSI
-  TIM_InitStruct.Autoreload = 7199;
-#else
-  TIM_InitStruct.Autoreload = 499;
-#endif
+
+  TIM_InitStruct.Autoreload = 4799;
   LL_TIM_Init(TIM7, &TIM_InitStruct);
   LL_TIM_DisableARRPreload(TIM7);
   LL_TIM_SetTriggerOutput(TIM7, LL_TIM_TRGO_RESET);

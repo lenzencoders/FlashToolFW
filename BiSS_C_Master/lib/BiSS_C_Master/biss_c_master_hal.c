@@ -77,6 +77,7 @@ typedef enum{
 	CRC6_OK,CRC6_FAULT
 }CRC_State_t;
 
+volatile uint32_t SSI_HALF_FREQ_FLAG = 0;
 // Test Renishaw Data
 //volatile uint32_t renishaw_angle = 0;
 //volatile AngleDataRenishaw_t AngleDataRenishaw;
@@ -272,6 +273,13 @@ void BISS_Task_IRQHandler(void) {
 				LED1TurnRed();
 				CRC6_State1 = CRC6_FAULT;
 			}		
+			if(SSI_HALF_FREQ_FLAG > 0){
+				SSI_HALF_FREQ_FLAG = 0;
+				BiSS1_SPI_nCDM_Req();
+			}
+			else{
+				SSI_HALF_FREQ_FLAG = 1;
+			}
 		#else
 			BISS1_SCD = __REV(BiSS1_SPI_rx.revSCD);
 			if(BISS_CRC6_Calc(BISS1_SCD >> 6) == (BISS1_SCD & 0x3FU)){
@@ -298,6 +306,7 @@ void BISS_Task_IRQHandler(void) {
 			}					
 			switch(BiSS_SPI_Ch){
 				case BISS_SPI_CH_1:
+#ifndef CH1_SSI
 					if (BiSS_C_Master_StateMachine(BiSS1_SPI_rx.CDS) == CDM) {					
 						BiSS1_SPI_CDM_Req();
 					}
@@ -305,6 +314,7 @@ void BISS_Task_IRQHandler(void) {
 						BiSS1_SPI_nCDM_Req();
 					}
 					BiSS2_SPI_nCDM_Req();
+#endif
 					break;
 				case BISS_SPI_CH_2:
 					if (BiSS_C_Master_StateMachine(BiSS2_SPI_rx.CDS) == CDM) {					
@@ -312,11 +322,15 @@ void BISS_Task_IRQHandler(void) {
 					}
 					else{
 						BiSS2_SPI_nCDM_Req();
-					}
+					}	
+#ifndef CH1_SSI
 					BiSS1_SPI_nCDM_Req();
+#endif
 					break;
 				default:
+#ifndef CH1_SSI
 					BiSS1_SPI_nCDM_Req();
+#endif
 					BiSS2_SPI_nCDM_Req();
 					break;
 			}
