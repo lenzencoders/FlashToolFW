@@ -84,7 +84,7 @@ typedef enum{
 SPI_rx_t BiSS1_SPI_rx;
 SPI_rx_t BiSS2_SPI_rx;
 USART_rx_t USART_rx;
-volatile BiSS_SPI_Ch_t BiSS_SPI_Ch = BISS_SPI_CH_1; // BISS_SPI_CH_1 or BISS_SPI_CH_2
+volatile BiSS_SPI_Ch_t BiSS_SPI_Ch = BISS_SPI_CH_2; // BISS_SPI_CH_1 or BISS_SPI_CH_2
 volatile CDS_t USART_CDS_last = CDS;
 volatile uint32_t BISS1_SCD;
 volatile uint32_t BISS2_SCD;
@@ -158,8 +158,14 @@ static void BiSS1_SPI_nCDM_Req(void){
 	LL_SPI_DeInit(BISS1_SPI);
 	BISS1_SPI->CR1 = SPI_CR1_BISS_nCDM;
 	BISS1_SPI->CR2 = SPI_CR2_BISS_CFG;
+#ifdef CH1_SSI
+	LL_SPI_SetBaudRatePrescaler(BISS1_SPI, LL_SPI_BAUDRATEPRESCALER_DIV128);
+	LL_DMA_SetDataLength(DMA_BISS1_TX, 3U); 
+	LL_DMA_SetDataLength(DMA_BISS1_RX, 3U); 
+#else
 	LL_DMA_SetDataLength(DMA_BISS1_TX, 5U); // TODO try 1U via define
 	LL_DMA_SetDataLength(DMA_BISS1_RX, 5U); // TODO try 1U via define
+#endif
 	LL_DMA_EnableChannel(DMA_BISS1_TX);	 
 	LL_DMA_EnableChannel(DMA_BISS1_RX);		
 }
@@ -253,6 +259,20 @@ void BISS_Task_IRQHandler(void) {
 	LL_TIM_ClearFlag_UPDATE(BISS_Task_TIM);
 	switch(BISS_MODE){
 		case BISS_MODE_SPI:		
+		#ifdef CH1_SSI
+			(void) BiSS1_SPI_rx;
+			uint32_t rev_temp = __REV(*(uint32_t *)&BiSS1_SPI_rx.buf[0]);		
+			if((rev_temp & 0xC00000) == 0x400000){
+				CRC6_State1 = CRC6_OK;
+				LED1TurnGreen();
+				AngleData1.angle_data = (rev_temp << 2) & 0xFFFF80;
+				AngleData1.time_of_life_counter++;
+			}
+			else{
+				LED1TurnRed();
+				CRC6_State1 = CRC6_FAULT;
+			}		
+		#else
 			BISS1_SCD = __REV(BiSS1_SPI_rx.revSCD);
 			if(BISS_CRC6_Calc(BISS1_SCD >> 6) == (BISS1_SCD & 0x3FU)){
 				CRC6_State1 = CRC6_OK;
@@ -264,6 +284,7 @@ void BISS_Task_IRQHandler(void) {
 				LED1TurnRed();
 				CRC6_State1 = CRC6_FAULT;
 			}			
+		#endif
 			BISS2_SCD = __REV(BiSS2_SPI_rx.revSCD);
 			if(BISS_CRC6_Calc(BISS2_SCD >> 6) == (BISS2_SCD & 0x3FU)){
 				CRC6_State2 = CRC6_OK;
@@ -434,7 +455,11 @@ static void BISS1_SPI_Init(void)
 	
 /* Init setup DMA/SPI */	
 	LL_DMA_SetPeriphAddress(DMA_BISS1_RX, (uint32_t) &BISS1_SPI->DR);
+#ifdef CH1_SSI
+	LL_DMA_SetMemoryAddress(DMA_BISS1_RX, (uint32_t) &BiSS1_SPI_rx.buf[1]);
+#else
 	LL_DMA_SetMemoryAddress(DMA_BISS1_RX, (uint32_t) &BiSS1_SPI_rx.buf[3]);
+#endif
 	LL_DMA_SetDataLength(DMA_BISS1_RX, 5);	
 	LL_DMA_SetPeriphAddress(DMA_BISS1_TX, (uint32_t) &BISS1_SPI->DR);
 	LL_DMA_SetDataLength(DMA_BISS1_TX, 5);	
@@ -632,7 +657,9 @@ static void BISS1_SPI_DeInit(void){
 }
 
 void SetBiSS_SPI_Ch(BiSS_SPI_Ch_t ch_to_set){
+	#ifndef CH1_SSI
 	if(IsBiSSReqBusy() == BISS_REQ_OK){
 		BiSS_SPI_Ch = ch_to_set;
 	}	
+	#endif
 }
