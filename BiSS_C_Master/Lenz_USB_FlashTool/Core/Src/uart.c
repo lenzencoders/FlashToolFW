@@ -439,6 +439,10 @@ void UART_StateMachine(void) {
 										UART_State = UART_STATE_ANGLE_READING;
 										break;
 								
+								case UART_COMMAND_NRST:		
+										NVIC_SystemReset(); 
+										break;
+								
 								case UART_COMMAND_READ_ANGLE_TWO_ENC_SPI:		
 										UART_TX.cmd = command;
 										UART_TX.len = UART_ANGLE_TWO_ENC_BUF_SIZE;

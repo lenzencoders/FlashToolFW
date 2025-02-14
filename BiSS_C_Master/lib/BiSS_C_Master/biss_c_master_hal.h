@@ -54,6 +54,7 @@ static inline AngleData_t getAngle2(void){
 }
 
 void SetBiSS_SPI_Ch(BiSS_SPI_Ch_t ch_to_set);
+uint32_t GetSSIFlag(void);
 
 #ifdef __cplusplus
 }

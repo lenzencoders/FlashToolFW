@@ -263,6 +263,8 @@ void BISS_Task_IRQHandler(void) {
 		#ifdef CH1_SSI
 			(void) BiSS1_SPI_rx;
 			uint32_t rev_temp = __REV(*(uint32_t *)&BiSS1_SPI_rx.buf[0]);		
+		
+				AngleData1.time_of_life_counter++;
 			if((rev_temp & 0xC00000) == 0x400000){
 				CRC6_State1 = CRC6_OK;
 				LED1TurnGreen();
@@ -298,7 +300,13 @@ void BISS_Task_IRQHandler(void) {
 				CRC6_State2 = CRC6_OK;
 				AngleData2.angle_data = BISS2_SCD >> 8;
 				AngleData2.time_of_life_counter++;
-				LED2TurnGreen();
+				
+				if(((BISS2_SCD >> 6) & 0x3)== 0x3){
+					LED2TurnGreen();
+				}
+				else{
+					LED2TurnRed();
+				}
 			}
 			else{
 				LED2TurnRed();
@@ -676,4 +684,8 @@ void SetBiSS_SPI_Ch(BiSS_SPI_Ch_t ch_to_set){
 		BiSS_SPI_Ch = ch_to_set;
 	}	
 	#endif
+}
+
+uint32_t GetSSIFlag(void){
+	return(SSI_HALF_FREQ_FLAG);
 }
