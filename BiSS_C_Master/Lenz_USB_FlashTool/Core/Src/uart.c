@@ -32,11 +32,11 @@
 #define FIRST_USER_BANK 0x05U
 
 static void EncoderPowerEnable(void){
-	LL_GPIO_SetOutputPin(PWR1_EN_PIN);
+	LL_GPIO_SetOutputPin(PWR2_EN_PIN);
 }
 
 static void EncoderPowerDisable(void){
-	LL_GPIO_ResetOutputPin(PWR1_EN_PIN);
+	LL_GPIO_ResetOutputPin(PWR2_EN_PIN);
 }
 
 typedef enum {
