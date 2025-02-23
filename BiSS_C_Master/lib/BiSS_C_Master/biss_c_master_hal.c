@@ -132,6 +132,7 @@ static void BISS1_SPI_Init(void);
 static void BISS1_SPI_DeInit(void);
 static void BISS2_SPI_Init(void);
 static void BISS2_SPI_DeInit(void);
+static void MX_TIM_ENC_Init(void);
 
 static void LED1TurnRed(void){
 	LL_GPIO_SetOutputPin(LED1_GREEN);
@@ -347,11 +348,16 @@ void BISS_Task_IRQHandler(void) {
 			if(LL_DMA_GetDataLength(DMA_BISS2_UART_RX) == 0){
 				if(BISS_CRC6_Calc(USART_rx.Data4CRC) == USART_rx.CRC6){
 					CRC6_State1 = CRC6_OK;
-					AngleData1.angle_data = USART_rx.Pos;
+					AngleData2.angle_data = USART_rx.Pos;
+					AngleData2.time_of_life_counter++;
+					LED2TurnGreen();
+					AngleData1.angle_data += (int16_t)(LL_TIM_GetCounter(TIM_ENC) - AngleData1.angle_data) ;
 					AngleData1.time_of_life_counter++;
+
 				}
 				else{
 					CRC6_State1 = CRC6_FAULT;
+						LED2TurnRed();
 				}	
 				if (BiSS_C_Master_StateMachine(USART_CDS_last) == CDM) {
 					BissRequest_CDM();
@@ -363,8 +369,10 @@ void BISS_Task_IRQHandler(void) {
 				}	
 				USART_CDS_last = (CDS_t)USART_rx.CDS;
 				adr_reset_cou = 0;
+				
 			}
 			else{
+				LED2TurnRed();
 				adr_reset_cou++;
 				if(adr_reset_cou == 255){
 					RS485_ADR = RS485_ADR == RS485_ADR1? RS485_ADR2 : RS485_ADR1;
@@ -395,11 +403,13 @@ void BiSS_C_Master_HAL_Init(void){
 			BISS2_SPI_Init();
 			break;
 		case BISS_MODE_UART:
+			MX_TIM_ENC_Init();
+		
 			LL_GPIO_SetOutputPin(PWR2_EN_PIN);
-			LL_GPIO_SetOutputPin(LED1_RED); // Set LED1 to high --> Green light
+			//LL_GPIO_SetOutputPin(LED1_RED); // Set LED1 to high --> Green light
 			LL_USART_Disable(BISS2_UART);		
-			LL_GPIO_SetPinMode(MA2_PIN, LL_GPIO_MODE_ANALOG);
-			LL_GPIO_SetPinMode(BISS_MA_UART_PIN, LL_GPIO_MODE_ALTERNATE);
+			//LL_GPIO_SetPinMode(MA2_PIN, LL_GPIO_MODE_ANALOG);
+			//LL_GPIO_SetPinMode(BISS_MA_UART_PIN, LL_GPIO_MODE_ALTERNATE);
 			LL_DMA_SetPeriphAddress(DMA_BISS2_UART_RX, (uint32_t) &BISS2_UART->RDR);
 			LL_DMA_SetMemoryAddress(DMA_BISS2_UART_RX, (uint32_t) &USART_rx.u32);
 			LL_DMA_SetDataLength(DMA_BISS2_UART_RX, 4);	
@@ -671,6 +681,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 2 */
 
+
 }
 
 static void BISS1_SPI_DeInit(void){
@@ -689,3 +700,69 @@ void SetBiSS_SPI_Ch(BiSS_SPI_Ch_t ch_to_set){
 uint32_t GetSSIFlag(void){
 	return(SSI_HALF_FREQ_FLAG);
 }
+
+
+/**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM_ENC_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+	LL_GPIO_SetOutputPin(PWR1_EN_PIN);
+
+  /* USER CODE END TIM3_Init 0 */
+
+  LL_TIM_InitTypeDef TIM_InitStruct = {0};
+
+  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /* Peripheral clock enable */
+  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM3);
+
+  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
+  /**TIM3 GPIO Configuration
+  PA4   ------> TIM3_CH2
+  */
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_4;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  GPIO_InitStruct.Alternate = LL_GPIO_AF_2;
+  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
+  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+	
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  TIM_InitStruct.Prescaler = 0;
+  TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
+  TIM_InitStruct.Autoreload = 65535;
+  TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
+  LL_TIM_Init(TIM3, &TIM_InitStruct);
+  LL_TIM_DisableARRPreload(TIM3);
+  LL_TIM_SetEncoderMode(TIM3, LL_TIM_ENCODERMODE_X4_TI12);
+  LL_TIM_IC_SetActiveInput(TIM3, LL_TIM_CHANNEL_CH1, LL_TIM_ACTIVEINPUT_DIRECTTI);
+  LL_TIM_IC_SetPrescaler(TIM3, LL_TIM_CHANNEL_CH1, LL_TIM_ICPSC_DIV1);
+  LL_TIM_IC_SetFilter(TIM3, LL_TIM_CHANNEL_CH1, LL_TIM_IC_FILTER_FDIV1);
+  LL_TIM_IC_SetPolarity(TIM3, LL_TIM_CHANNEL_CH1, LL_TIM_IC_POLARITY_RISING);
+  LL_TIM_IC_SetActiveInput(TIM3, LL_TIM_CHANNEL_CH2, LL_TIM_ACTIVEINPUT_DIRECTTI);
+  LL_TIM_IC_SetPrescaler(TIM3, LL_TIM_CHANNEL_CH2, LL_TIM_ICPSC_DIV1);
+  LL_TIM_IC_SetFilter(TIM3, LL_TIM_CHANNEL_CH2, LL_TIM_IC_FILTER_FDIV1);
+  LL_TIM_IC_SetPolarity(TIM3, LL_TIM_CHANNEL_CH2, LL_TIM_IC_POLARITY_RISING);
+  LL_TIM_SetTriggerOutput(TIM3, LL_TIM_TRGO_RESET);
+  LL_TIM_DisableMasterSlaveMode(TIM3);
+  /* USER CODE BEGIN TIM3_Init 2 */
+	LL_TIM_SetCounter(TIM_ENC, 0);
+
+	AngleData1.angle_data = 0x800000;
+	LL_TIM_EnableCounter(TIM_ENC);
+  /* USER CODE END TIM3_Init 2 */
+
+}
+

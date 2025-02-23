@@ -200,6 +200,8 @@ void UART_StateMachine(void) {
     switch (UART_State) {
 				uint8_t bytes_received;
         case UART_STATE_IDLE:
+					
+							LL_GPIO_ResetOutputPin(LED1_RED);
 //						if (IsBiSSReqBusy() != BISS_READ_FINISHED){
 //							UART_Transmit(read_buf, RX_BUFFER_SIZE);
 //						}
@@ -499,6 +501,7 @@ void UART_StateMachine(void) {
 						
 				case UART_STATE_ANGLE_READING_TWO_ENC_SPI:
 						if(ReadingStrEnc1.len > 0){
+							LL_GPIO_SetOutputPin(LED1_RED);
 							AngleData_t angle_data1 = getAngle1();
 							AngleData_t angle_data2 = getAngle2();
 				

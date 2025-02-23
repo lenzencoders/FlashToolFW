@@ -15,7 +15,7 @@ extern "C" {
 
 
 /* BISS C Config*/
-static const enum {BISS_MODE_SPI, BISS_MODE_UART} BISS_MODE = BISS_MODE_SPI; // BISS_MODE_UART
+static const enum {BISS_MODE_SPI, BISS_MODE_UART} BISS_MODE = BISS_MODE_UART; // BISS_MODE_UART
 
 #define CH1_SSI
 	
@@ -68,6 +68,10 @@ static const enum {BISS_MODE_SPI, BISS_MODE_UART} BISS_MODE = BISS_MODE_SPI; // 
 #define LED1_GREEN							GPIOA, LL_GPIO_PIN_12
 #define LED2_RED								GPIOB, LL_GPIO_PIN_5
 #define LED2_GREEN							GPIOB, LL_GPIO_PIN_6
+
+#define TIM_ENC1_PIN						GPIOA, LL_GPIO_PIN_4
+#define TIM_ENC2_PIN						GPIOA, LL_GPIO_PIN_6
+#define TIM_ENC									TIM3
 
 
 #ifdef __cplusplus
