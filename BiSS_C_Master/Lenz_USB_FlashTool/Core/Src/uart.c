@@ -334,6 +334,29 @@ void UART_StateMachine(void) {
 									}
 									break;
 									
+								case UART_COMMAND_CHANGE_MODE:
+									if (cmd_data[0] == 0) {
+										if (Current_Mode != BISS_MODE_SPI){
+											Change_Current_Mode(BISS_MODE_SPI);
+										}
+									} else if (cmd_data[0] == 1) {
+										if (Current_Mode != BISS_MODE_UART){
+											Change_Current_Mode(BISS_MODE_UART);
+										}
+									} else if (cmd_data[0] == 2) {
+										if (Current_Mode != BISS_MODE_UART_IRS){
+											Change_Current_Mode(BISS_MODE_UART_IRS);
+										}
+									} else if (cmd_data[0] == 3) {
+										if (Current_Mode != BISS_MODE_UART_SPI){
+											Change_Current_Mode(BISS_MODE_UART_SPI);
+										}
+									}
+									UART_State = UART_STATE_IDLE;
+									queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+									queue_cnt--;
+									break;
+									
 								case UART_COMMAND_PAGE:
 									if (IsBiSSReqBusy() != BISS_BUSY) {
 										uint8_t cmd_data_page = cmd_data[0];
@@ -358,6 +381,49 @@ void UART_StateMachine(void) {
 										}
 									}
 									break;
+									
+								case UART_COMMAND_ENC1_POWER_OFF:
+										EncoderPowerDisable();
+										UART_State = UART_STATE_IDLE;
+										queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+										queue_cnt--;										
+										break;
+								
+								case UART_COMMAND_ENC1_POWER_ON:
+										EncoderPowerEnable();
+										UART_State = UART_STATE_IDLE;
+										queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+										queue_cnt--;
+										break;	
+								
+								case UART_COMMAND_ENC2_POWER_OFF:
+										EncoderSecondPowerDisable();
+										UART_State = UART_STATE_IDLE;
+										queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+										queue_cnt--;										
+										break;
+								
+								case UART_COMMAND_ENC2_POWER_ON:
+										EncoderSecondPowerEnable();
+										UART_State = UART_STATE_IDLE;
+										queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+										queue_cnt--;										
+										break;
+											
+								case UART_COMMAND_SELECT_SPI_CH:
+										if (cmd_data[0] == 0) {
+											if (BiSS_SPI_Ch != BISS_SPI_CH_1){
+												SetBiSS_SPI_Ch(BISS_SPI_CH_1);
+											}
+										} else if (cmd_data[0] == 1) {
+											if (BiSS_SPI_Ch != BISS_SPI_CH_2){
+												SetBiSS_SPI_Ch(BISS_SPI_CH_2);
+											}
+										}
+										UART_State = UART_STATE_IDLE;
+										queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+										queue_cnt--;
+										break;
 									
 								case UART_COMMAND_WRITE_REG:
 									if (IsBiSSReqBusy() != BISS_BUSY) {
