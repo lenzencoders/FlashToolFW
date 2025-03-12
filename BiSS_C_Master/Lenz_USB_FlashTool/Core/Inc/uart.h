@@ -51,7 +51,6 @@ typedef struct {
 extern UartTxStr_t UART_TX;
 //End move
 
-//void UART_Init(void);
 void UART_Transmit(UartTxStr_t *TxStr);
 
 uint8_t check_request(uint8_t *received_data);

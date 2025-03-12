@@ -376,7 +376,3 @@ BiSSExternalState_t BiSSResetExternalState(void){
 BiSSFaultState_t BiSSGetFaultState(void){
 	return(BiSS.FaultState);
 }
-
-BiSSFaultState_t BiSSGetFaultState(void){
-	return(BiSS.FaultState);
-}

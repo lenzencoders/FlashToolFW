@@ -73,6 +73,7 @@ static inline AngleDataRenishaw_t getAngleRenishaw(void){
 }
 
 void SetBiSS_SPI_Ch(BiSS_SPI_Ch_t ch_to_set);
+
 uint32_t GetSSIFlag(void);
 
 void Stop_Current_Mode(void);

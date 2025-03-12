@@ -601,9 +601,6 @@ void UART_StateMachine(void) {
 
 								case UART_COMMAND_NRST:		
  										NVIC_SystemReset();
-										// UART_State = UART_STATE_IDLE;
-										// queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
-										// queue_cnt--;
  										break;
 											
 								default:
