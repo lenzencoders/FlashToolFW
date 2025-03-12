@@ -78,6 +78,8 @@ void Stop_Current_Mode(void);
 
 void Change_Current_Mode(BISS_Mode_t New_Mode);
 
+void USART2_Write_Read_IRS(uint8_t* txData, uint8_t* rxData, uint8_t data_len);
+
 #ifdef __cplusplus
 }
 #endif

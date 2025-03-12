@@ -28,10 +28,14 @@
 #define UART_ANGLE_TWO_ENC_BUF_SIZE 	(UART_ANGLE_TWO_ENC_LEN * 8U) // *(4U + 4U) --> Encoder1 + Encoder2
 #define UART_ANGLE_TWO_ENC_AB_UART_LEN 	40U // 40U --> Encoder1 + Renishaw
 #define UART_ANGLE_TWO_ENC_AB_UART_BUF_SIZE 	(UART_ANGLE_TWO_ENC_AB_UART_LEN * 6U) // *(4U + 2U) --> Encoder1 + Renishaw
+#define ANGLE_SIZE	4U
 
 #define PAGE_ADDR       0x18U
 #define BSEL_ADDR		    0x40U
 #define FIRST_USER_BANK 0x05U
+
+const uint16_t error_biss_cmd = 0xDE;
+const uint16_t error_uart_cmd = 0xEF;
 
 static void EncoderPowerEnable(void){
 	LL_GPIO_SetOutputPin(PWR1_EN_PIN);
@@ -49,7 +53,7 @@ static void EncoderSecondPowerDisable(void){
 	LL_GPIO_ResetOutputPin(PWR2_EN_PIN);
 }
 
-typedef enum {
+typedef enum{
 	UART_STATE_IDLE,
 	UART_STATE_RECEIVE,
 	UART_STATE_SEND,
@@ -59,33 +63,33 @@ typedef enum {
 	UART_STATE_ANGLE_READING_TWO_ENC_AB_UART,
 	UART_STATE_ANGLE_READING,
 	UART_STATE_ABORT,
-} UART_State_t;
+}UART_State_t;
 
-typedef enum {
+typedef enum{
 	UART_ERROR_NONE = 0x00,
 	UART_ERROR_CRC = 0x01U,
 	UART_ERROR_QUEUE_FULL = 0x02U,
 	UART_ERROR_BISS = 0x03U,
 	UART_ERROR_BISS_WRITE_FAULT = 0x04U,
 	UART_ERROR_BISS_READ_FAULT = 0x05U,
-} UART_Error_t;
+}UART_Error_t;
 
 volatile enum{
 	CRC_OK,
 	CRC_FAULT
-} CRC_State = CRC_FAULT;
+}CRC_State = CRC_FAULT;
 
 typedef enum{
 	QUEUE_OK,
 	QUEUE_FULL
 }QUEUE_Status_t;
 
-typedef struct {
+typedef struct{
 	uint8_t len;
 	uint16_t addr;
 	UART_Command_t cmd;
 	uint8_t data[HEX_DATA_LEN];
-} CommandQueue_t;
+}CommandQueue_t;
 
 volatile struct{
 	AngleData_t AngleFIFO[256];
@@ -110,17 +114,12 @@ volatile struct{
 	uint8_t FIFO_current_ptr;
 }ReadingStrRenishaw;
 
-
 UartTxStr_t UART_TX;
 UART_Error_t UART_Error = UART_ERROR_NONE;
-
+UART_State_t UART_State = UART_STATE_IDLE;
 volatile uint8_t usb_rx_buffer[RX_BUFFER_SIZE] = {0};
 uint8_t usb_tx_buffer[TX_BUFFER_SIZE] = {0};
 uint8_t hex_line_buffer[UART_LINE_SIZE] = {0};
-UART_State_t UART_State = UART_STATE_IDLE;
-
-const uint16_t error_biss_cmd = 0xDF;
-const uint16_t error_uart_cmd = 0xEF;
 
 uint32_t dma_rx_cnt = 0; 
 volatile uint32_t uart_expected_length = 0; 
@@ -162,7 +161,7 @@ QUEUE_Status_t EnqueueCommandToBegining(UART_Command_t cmd, uint16_t addr, uint8
     return QUEUE_FULL;
 }
 
-void InitUart(void){
+void UART_Config(void) {
 	LL_TIM_EnableIT_UPDATE(BISS_Task_TIM);
 	LL_TIM_EnableCounter(BISS_Task_TIM);
 	LL_DMA_SetMemoryAddress(DMA_LPUART_RX, (uint32_t)usb_rx_buffer);
@@ -225,10 +224,9 @@ void UART_StateMachine(void) {
 //						if (IsBiSSReqBusy() != BISS_READ_FINISHED){
 //							UART_Transmit(read_buf, RX_BUFFER_SIZE);
 //						}
-						
+
            new_cnt = RX_BUFFER_SIZE - LL_DMA_GetDataLength(DMA_LPUART_RX);
            if (dma_rx_cnt != new_cnt) {
-								
 								bytes_received = (new_cnt - dma_rx_cnt + RX_BUFFER_SIZE) % RX_BUFFER_SIZE;
 								uart_length = usb_rx_buffer[dma_rx_cnt];
 								uart_expected_length = uart_length + HEXLEN_ADR_CMD_CRC_LEN;
@@ -241,8 +239,7 @@ void UART_StateMachine(void) {
 //                UART_State = UART_STATE_RECEIVE;
 //            //change
 								}
-						}
-						else {
+						} else {
 							if (queue_cnt > 0){
 								UART_State = UART_STATE_RUNCMD;
 							}
@@ -270,22 +267,19 @@ void UART_StateMachine(void) {
 								UART_Command_t command = hex_line_buffer[3];
 								uint8_t *cmd_data = &hex_line_buffer[4];	
 										
-								if (EnqueueCommand(command, cmd_addr, cmd_data_len, cmd_data) == QUEUE_OK){
+								if (EnqueueCommand(command, cmd_addr, cmd_data_len, cmd_data) == QUEUE_OK) {
 									UART_State = UART_STATE_RUNCMD;
-								}
-								else {
+								} else {
 									UART_Error = UART_ERROR_QUEUE_FULL;
 									UART_State = UART_STATE_ABORT;  
 								}
-							} 
-							else {
+							} else {
 									UART_Error = UART_ERROR_CRC;
 									UART_State = UART_STATE_CHECKCRC;
 							}
 
               dma_rx_cnt = (dma_rx_cnt + uart_expected_length) % RX_BUFFER_SIZE;
-            }
-						else { //??
+            } else { //??
 							UART_State = UART_STATE_ABORT;
 						} 
             break;
@@ -296,7 +290,7 @@ void UART_StateMachine(void) {
             break;
 
         case UART_STATE_RUNCMD:
-						if (queue_cnt > 0){
+						if (queue_cnt > 0) {
 							UART_Command_t command = CommandQueue[queue_read_cnt].cmd;
 							uint8_t cmd_data_len = CommandQueue[queue_read_cnt].len;
 							uint16_t cmd_addr = CommandQueue[queue_read_cnt].addr;
@@ -313,7 +307,7 @@ void UART_StateMachine(void) {
 								// cmd 03 -> send crc and run command load2k
 								case UART_COMMAND_WRITE_BANK:
 									if (IsBiSSReqBusy() != BISS_BUSY) {
-										if (cmd_data_len == 0x40){
+										if (cmd_data_len == 0x40) {
 											cmd_data_len +=1;
 											cmd_data[cmd_data_len] = ((cmd_addr %(0x00A0U & 0xFFU)) % 0x20U) + 6;
 										}
@@ -322,13 +316,19 @@ void UART_StateMachine(void) {
 											queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
 											queue_cnt--;
 											retry_cnt = 0;
-										} 
-										else {
+										} else {
 											retry_cnt++;
-											if (retry_cnt >= MAX_RETRY){
-												UART_Error = UART_ERROR_BISS;
-												UART_State = UART_STATE_ABORT;
-												retry_cnt = 0;
+											if (retry_cnt >= MAX_RETRY) {
+												if (BiSSGetFaultState() == BISS_NO_FAULTS) {
+													UART_State = UART_STATE_IDLE;
+													retry_cnt = 0;
+												} else {
+													UART_Error = UART_ERROR_BISS;
+													UART_State = UART_STATE_ABORT;
+													//queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+													//queue_cnt--;
+													retry_cnt = 0;
+												}
 											}
 										}
 									}
@@ -370,13 +370,19 @@ void UART_StateMachine(void) {
 												UART_Error = UART_ERROR_QUEUE_FULL;
 												UART_State = UART_STATE_ABORT; 
 											}
-										} 
-										else {
+										} else {
 											retry_cnt++;
-											if (retry_cnt >= MAX_RETRY){
-												UART_Error = UART_ERROR_BISS;
-												UART_State = UART_STATE_ABORT;
-												retry_cnt = 0;
+											if (retry_cnt >= MAX_RETRY) {
+												if (BiSSGetFaultState() == BISS_NO_FAULTS) {
+													UART_State = UART_STATE_IDLE;
+													retry_cnt = 0;
+												} else {
+													UART_Error = UART_ERROR_BISS;
+													UART_State = UART_STATE_ABORT;
+													//queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+													//queue_cnt--;
+													retry_cnt = 0;
+												}
 											}
 										}
 									}
@@ -432,20 +438,34 @@ void UART_StateMachine(void) {
 											queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
 											queue_cnt--;
 											retry_cnt = 0;
-										} 
-										else {
+										} else {
 											retry_cnt++;
-											if (retry_cnt >= MAX_RETRY){
+											if (retry_cnt >= MAX_RETRY) {
+												if(BiSSGetFaultState() == BISS_NO_FAULTS) {
+														UART_State = UART_STATE_IDLE;
+														retry_cnt = 0;
+												} else {
+													UART_Error = UART_ERROR_BISS;
+													UART_State = UART_STATE_ABORT;
+													queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+													queue_cnt--;
+													retry_cnt = 0;
+												}
+											}
+										}
+									} else {
+											if(BiSSGetFaultState() != BISS_NO_FAULTS) {
 												UART_Error = UART_ERROR_BISS;
 												UART_State = UART_STATE_ABORT;
+												queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+												queue_cnt--;
 												retry_cnt = 0;
 											}
 										}
-									}
 									break;
 
 								case UART_COMMAND_READ_REG:
-										if (IsBiSSReqBusy() != BISS_BUSY){ 
+										if (IsBiSSReqBusy() != BISS_BUSY) { 
 											UART_TX.cmd = command;
 											UART_TX.len = cmd_data_len;
 											UART_TX.adr_h = (cmd_addr >> 8U) & 0xFFU;
@@ -458,53 +478,63 @@ void UART_StateMachine(void) {
 												queue_cnt--;
 
 												//TODO add retry
-											} 
-											else {
+											} else {
 												retry_cnt++;
-												if (retry_cnt >= MAX_RETRY){
-													UART_Error = UART_ERROR_BISS;
-													UART_State = UART_STATE_ABORT;
-													retry_cnt = 0;
+												if (retry_cnt >= MAX_RETRY) {
+													if(BiSSGetFaultState() == BISS_NO_FAULTS) {
+														UART_State = UART_STATE_IDLE;
+														retry_cnt = 0;
+													} else {
+														UART_Error = UART_ERROR_BISS;
+														UART_State = UART_STATE_ABORT;
+														queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+														queue_cnt--;
+														retry_cnt = 0;
+													}
 												}
 												// UART_State = UART_STATE_ABORT;
 											}
+										} else {
+											if(BiSSGetFaultState() != BISS_NO_FAULTS) {
+												UART_Error = UART_ERROR_BISS;
+												UART_State = UART_STATE_ABORT;
+												queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+												queue_cnt--;
+												retry_cnt = 0;
+											}
 										}
 										break;
-
-								case UART_COMMAND_READ_ANGLE:			
+													
+								case UART_COMMAND_WRITE_READ_ENC_USART2:
 										UART_TX.cmd = command;
-										UART_TX.len = UART_ANGLE_BUF_SIZE;
-								
-										ReadingStrEnc1.len = cmd_addr + 1;// Address = buf_size * 63
-										ReadingStrEnc1.FIFO_current_ptr = 0;
-										ReadingStrEnc1.FIFO_start_ptr = 0;
-										ReadingStrEnc1.ToL_cnt = 0;
+										UART_TX.len = TX_BUFFER_SIZE;
+										UART_TX.adr_h = 0;
+										UART_TX.adr_l = 0;
+										USART2_Write_Read_IRS(cmd_data, UART_TX.Buf, cmd_data_len);
+										UART_Transmit(&UART_TX);
 								
 										queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
 										queue_cnt--;
-
-										UART_State = UART_STATE_ANGLE_READING;
-										break;
 								
-								case UART_COMMAND_READ_ANGLE_TWO_ENC_SPI:		
+										UART_State = UART_STATE_IDLE;
+									break;
+								
+								case UART_COMMAND_READ_ANGLE_IRS_ENC_SPI:
 										UART_TX.cmd = command;
-										UART_TX.len = UART_ANGLE_TWO_ENC_BUF_SIZE;
-								
-										ReadingStrEnc1.len = cmd_addr + 1;// Address = buf_size * 63
-										ReadingStrEnc1.FIFO_current_ptr = 0;
-										ReadingStrEnc1.FIFO_start_ptr = 0;
-										ReadingStrEnc1.ToL_cnt = 0;
-								
-										ReadingStrEnc2.len = cmd_addr + 1;// Address = buf_size * 63
-										ReadingStrEnc2.FIFO_current_ptr = 0;
-										ReadingStrEnc2.FIFO_start_ptr = 0;
-										ReadingStrEnc2.ToL_cnt = 0;
-								
+										// UART_TX.len = ANGLE_SIZE;
+										UART_TX.len = cmd_data_len;
+										UART_TX.adr_h = 0;
+										UART_TX.adr_l = 0;
+										if(BiSS_SPI_Ch == BISS_SPI_CH_2){
+											AngleData_t angle_data2 = getAngle2();
+											*((AngleData_t*)&UART_TX.Buf[0]) = angle_data2;
+											UART_Transmit(&UART_TX);
+										}
 										queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
 										queue_cnt--;
-
-										UART_State = UART_STATE_ANGLE_READING_TWO_ENC_SPI;
-										break;
+								
+										UART_State = UART_STATE_IDLE;
+									break;
 								
 								case UART_COMMAND_READ_ANGLE_TWO_ENC_AB_UART:		
 										UART_TX.cmd = command;
@@ -525,33 +555,57 @@ void UART_StateMachine(void) {
 
 										UART_State = UART_STATE_ANGLE_READING_TWO_ENC_AB_UART;
 										break;
+									
+								case UART_COMMAND_READ_ANGLE_TWO_ENC_SPI:		
+										UART_TX.cmd = command;
+										UART_TX.len = UART_ANGLE_TWO_ENC_BUF_SIZE;
 								
-								case UART_COMMAND_SELECT_SPI_CH:
-										if (cmd_data[0] == 0){
-											SetBiSS_SPI_Ch(BISS_SPI_CH_1);
-										} else if (cmd_data[0] == 1) {
-											SetBiSS_SPI_Ch(BISS_SPI_CH_2);
+										ReadingStrEnc1.len = cmd_addr + 1;// Address = buf_size * 63
+										ReadingStrEnc1.FIFO_current_ptr = 0;
+										ReadingStrEnc1.FIFO_start_ptr = 0;
+										ReadingStrEnc1.ToL_cnt = 0;
+								
+										ReadingStrEnc2.len = cmd_addr + 1;// Address = buf_size * 63
+										ReadingStrEnc2.FIFO_current_ptr = 0;
+										ReadingStrEnc2.FIFO_start_ptr = 0;
+										ReadingStrEnc2.ToL_cnt = 0;
+								
+										queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+										queue_cnt--;
+
+										UART_State = UART_STATE_ANGLE_READING_TWO_ENC_SPI;
+										break;
+								
+								case UART_COMMAND_READ_ANGLE:			
+										UART_TX.cmd = command;
+										UART_TX.len = UART_ANGLE_BUF_SIZE;
+
+										if(BiSS_SPI_Ch == BISS_SPI_CH_1) {
+											ReadingStrEnc1.len = cmd_addr + 1;// Address = buf_size * 63
+											ReadingStrEnc1.FIFO_current_ptr = 0;
+											ReadingStrEnc1.FIFO_start_ptr = 0;
+											ReadingStrEnc1.ToL_cnt = 0;
+										} 
+										else if(BiSS_SPI_Ch == BISS_SPI_CH_2) {
+											ReadingStrEnc2.len = cmd_addr + 1;// Address = buf_size * 63
+											ReadingStrEnc2.FIFO_current_ptr = 0;
+											ReadingStrEnc2.FIFO_start_ptr = 0;
+											ReadingStrEnc2.ToL_cnt = 0;
 										}
-										
-										UART_State = UART_STATE_IDLE;
+
 										queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
 										queue_cnt--;
+
+										UART_State = UART_STATE_ANGLE_READING;
 										break;
-										
-								case UART_COMMAND_POWER_OFF:
-										EncoderPowerDisable();
-										UART_State = UART_STATE_IDLE;
-										queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
-										queue_cnt--;										
-										break;
-								
-								case UART_COMMAND_POWER_ON:
-										EncoderPowerEnable();
-										UART_State = UART_STATE_IDLE;
-										queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
-										queue_cnt--;
-										break;								
-								
+
+								case UART_COMMAND_NRST:		
+ 										NVIC_SystemReset();
+										// UART_State = UART_STATE_IDLE;
+										// queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+										// queue_cnt--;
+ 										break;
+											
 								default:
 										UART_State = UART_STATE_ABORT;
 										break;
@@ -560,11 +614,11 @@ void UART_StateMachine(void) {
             break;
 						
 				case UART_STATE_ANGLE_READING_TWO_ENC_SPI:
-						if(ReadingStrEnc1.len > 0){
+						if(ReadingStrEnc1.len > 0) {
 							AngleData_t angle_data1 = getAngle1();
 							AngleData_t angle_data2 = getAngle2();
 				
-							if(angle_data1.time_of_life_counter != ReadingStrEnc1.ToL_cnt){
+							if(angle_data1.time_of_life_counter != ReadingStrEnc1.ToL_cnt) {
 								
 								ReadingStrEnc1.ToL_cnt = angle_data1.time_of_life_counter;
 								ReadingStrEnc1.AngleFIFO[ReadingStrEnc1.FIFO_current_ptr] = angle_data1;
@@ -574,9 +628,9 @@ void UART_StateMachine(void) {
 								ReadingStrEnc2.AngleFIFO[ReadingStrEnc2.FIFO_current_ptr] = angle_data2;
 								ReadingStrEnc2.FIFO_current_ptr++;
 								
-								if((((uint16_t)ReadingStrEnc1.FIFO_current_ptr + 256 - ReadingStrEnc1.FIFO_start_ptr) & 0xFFU) >= UART_ANGLE_TWO_ENC_LEN){
+								if((((uint16_t)ReadingStrEnc1.FIFO_current_ptr + 256 - ReadingStrEnc1.FIFO_start_ptr) & 0xFFU) >= UART_ANGLE_TWO_ENC_LEN) {
 									uint8_t TxBufCnt = 0;
-									while(ReadingStrEnc1.FIFO_start_ptr != ReadingStrEnc1.FIFO_current_ptr){
+									while(ReadingStrEnc1.FIFO_start_ptr != ReadingStrEnc1.FIFO_current_ptr) {
 										*((AngleData_t*)&UART_TX.Buf[TxBufCnt]) = ReadingStrEnc1.AngleFIFO[ReadingStrEnc1.FIFO_start_ptr];
 										TxBufCnt += 4;
 										*((AngleData_t*)&UART_TX.Buf[TxBufCnt]) = ReadingStrEnc2.AngleFIFO[ReadingStrEnc2.FIFO_start_ptr];
@@ -591,17 +645,17 @@ void UART_StateMachine(void) {
 									UART_Transmit(&UART_TX);
 								}
 							}
-					}	else{
+					}	else {
 						UART_State = UART_STATE_IDLE;
 					}
 					break;
 				
 				case UART_STATE_ANGLE_READING_TWO_ENC_AB_UART:
-					if(ReadingStrEnc1.len > 0){
+					if(ReadingStrEnc1.len > 0) {
 						AngleData_t angle_data1 = getAngle1();
 						AngleDataRenishaw_t angle_data2 = getAngleRenishaw();
 						
-						if(angle_data1.time_of_life_counter != ReadingStrEnc1.ToL_cnt){
+						if(angle_data1.time_of_life_counter != ReadingStrEnc1.ToL_cnt) {
 								
 								ReadingStrEnc1.ToL_cnt = angle_data1.time_of_life_counter;
 								ReadingStrEnc1.AngleFIFO[ReadingStrEnc1.FIFO_current_ptr] = angle_data1;
@@ -611,9 +665,9 @@ void UART_StateMachine(void) {
 								ReadingStrRenishaw.AngleFIFO[ReadingStrRenishaw.FIFO_current_ptr] = angle_data2;
 								ReadingStrRenishaw.FIFO_current_ptr++;
 								
-								if((((uint16_t)ReadingStrEnc1.FIFO_current_ptr + 256 - ReadingStrEnc1.FIFO_start_ptr) & 0xFFU) >= UART_ANGLE_TWO_ENC_AB_UART_LEN){
+								if((((uint16_t)ReadingStrEnc1.FIFO_current_ptr + 256 - ReadingStrEnc1.FIFO_start_ptr) & 0xFFU) >= UART_ANGLE_TWO_ENC_AB_UART_LEN) {
 									uint8_t TxBufCnt = 0;
-									while(ReadingStrEnc1.FIFO_start_ptr != ReadingStrEnc1.FIFO_current_ptr){
+									while(ReadingStrEnc1.FIFO_start_ptr != ReadingStrEnc1.FIFO_current_ptr) {
 										*((AngleData_t*)&UART_TX.Buf[TxBufCnt]) = ReadingStrEnc1.AngleFIFO[ReadingStrEnc1.FIFO_start_ptr];
 										TxBufCnt += 4;
 										*((AngleDataRenishaw_t*)&UART_TX.Buf[TxBufCnt]) = ReadingStrRenishaw.AngleFIFO[ReadingStrRenishaw.FIFO_start_ptr];
@@ -628,40 +682,64 @@ void UART_StateMachine(void) {
 									UART_Transmit(&UART_TX);
 								}
 							}
-						
-					} else{
+					} else {
 						UART_State = UART_STATE_IDLE;
 					}
 					break;
 				
 				case UART_STATE_ANGLE_READING:
-					if(ReadingStrEnc1.len > 0){
-						AngleData_t angle_data = getAngle1();
-							if(angle_data.time_of_life_counter != ReadingStrEnc1.ToL_cnt){
-								ReadingStrEnc1.ToL_cnt = angle_data.time_of_life_counter;
-								ReadingStrEnc1.AngleFIFO[ReadingStrEnc1.FIFO_current_ptr] = angle_data;
-								ReadingStrEnc1.FIFO_current_ptr++;
-								if((((uint16_t)ReadingStrEnc1.FIFO_current_ptr + 256 - ReadingStrEnc1.FIFO_start_ptr) & 0xFFU) >= UART_ANGLE_LEN){
-									uint8_t TxBufCnt = 0;
-									while(ReadingStrEnc1.FIFO_start_ptr != ReadingStrEnc1.FIFO_current_ptr){
-										*((AngleData_t*)&UART_TX.Buf[TxBufCnt]) = ReadingStrEnc1.AngleFIFO[ReadingStrEnc1.FIFO_start_ptr];
-										TxBufCnt += 4;
-										ReadingStrEnc1.FIFO_start_ptr++;
+					if(BiSS_SPI_Ch == BISS_SPI_CH_1) {
+						if(ReadingStrEnc1.len > 0) {	
+							AngleData_t angle_data = getAngle1();
+								if(angle_data.time_of_life_counter != ReadingStrEnc1.ToL_cnt) {
+									ReadingStrEnc1.ToL_cnt = angle_data.time_of_life_counter;
+									ReadingStrEnc1.AngleFIFO[ReadingStrEnc1.FIFO_current_ptr] = angle_data;
+									ReadingStrEnc1.FIFO_current_ptr++;
+									if((((uint16_t)ReadingStrEnc1.FIFO_current_ptr + 256 - ReadingStrEnc1.FIFO_start_ptr) & 0xFFU) >= UART_ANGLE_LEN) {
+										uint8_t TxBufCnt = 0;
+										while(ReadingStrEnc1.FIFO_start_ptr != ReadingStrEnc1.FIFO_current_ptr) {
+											*((AngleData_t*)&UART_TX.Buf[TxBufCnt]) = ReadingStrEnc1.AngleFIFO[ReadingStrEnc1.FIFO_start_ptr];
+											TxBufCnt += 4;
+											ReadingStrEnc1.FIFO_start_ptr++;
+										}
+										ReadingStrEnc1.len--;
+										UART_TX.adr_h = (ReadingStrEnc1.len >> 8U) & 0xFFU;
+										UART_TX.adr_l = ReadingStrEnc1.len & 0xFFU;
+										UART_Transmit(&UART_TX);
 									}
-									ReadingStrEnc1.len--;
-									UART_TX.adr_h = (ReadingStrEnc1.len >> 8U) & 0xFFU;
-									UART_TX.adr_l = ReadingStrEnc1.len & 0xFFU;
-									UART_Transmit(&UART_TX);
 								}
-							}
-					}		
-					else{
-						UART_State = UART_STATE_IDLE;
+						}	else {
+							UART_State = UART_STATE_IDLE;
+						}
+					}
+					else if(BiSS_SPI_Ch == BISS_SPI_CH_2) {
+						if(ReadingStrEnc2.len > 0) {	
+							AngleData_t angle_data = getAngle2();
+								if(angle_data.time_of_life_counter != ReadingStrEnc2.ToL_cnt) {
+									ReadingStrEnc2.ToL_cnt = angle_data.time_of_life_counter;
+									ReadingStrEnc2.AngleFIFO[ReadingStrEnc2.FIFO_current_ptr] = angle_data;
+									ReadingStrEnc2.FIFO_current_ptr++;
+									if((((uint16_t)ReadingStrEnc2.FIFO_current_ptr + 256 - ReadingStrEnc2.FIFO_start_ptr) & 0xFFU) >= UART_ANGLE_LEN) {
+										uint8_t TxBufCnt = 0;
+										while(ReadingStrEnc2.FIFO_start_ptr != ReadingStrEnc2.FIFO_current_ptr) {
+											*((AngleData_t*)&UART_TX.Buf[TxBufCnt]) = ReadingStrEnc2.AngleFIFO[ReadingStrEnc2.FIFO_start_ptr];
+											TxBufCnt += 4;
+											ReadingStrEnc2.FIFO_start_ptr++;
+										}
+										ReadingStrEnc2.len--;
+										UART_TX.adr_h = (ReadingStrEnc2.len >> 8U) & 0xFFU;
+										UART_TX.adr_l = ReadingStrEnc2.len & 0xFFU;
+										UART_Transmit(&UART_TX);
+									}
+								}
+						}	else {
+							UART_State = UART_STATE_IDLE;
+						}
 					}
 					break;
 					
         case UART_STATE_ABORT:
-					switch(UART_Error){
+					switch(UART_Error) {
 						case UART_ERROR_CRC:
 							// TODO: Add UART transmit for error
 							UART_TX.cmd = error_uart_cmd;
@@ -684,10 +762,11 @@ void UART_StateMachine(void) {
 							break;
 						case UART_ERROR_BISS:
 							UART_TX.cmd = error_biss_cmd;
-							UART_TX.len = 0+1;
+							UART_TX.len = 0+1;  // TODO: add BiSSExternalState_t ??? 
 							UART_TX.adr_h = 0;
 							UART_TX.adr_l = 0;
 							UART_TX.Buf[0] = (uint8_t)BiSSGetFaultState();
+							// UART_TX.Buf[1] = (uint8_t)IsBiSSReqBusy();
 							UART_Transmit(&UART_TX);
 							UART_Error = UART_ERROR_NONE;
 							break;
@@ -697,13 +776,14 @@ void UART_StateMachine(void) {
 							__NOP();
 							UART_State = UART_STATE_IDLE;
 							break;
-					}							
+					}
 					/*
 					__NOP();
 					__NOP();
 					__NOP();
           UART_State = UART_STATE_IDLE;
           break;*/
+					break;
 
         default:
 					UART_State = UART_STATE_IDLE;
