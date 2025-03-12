@@ -330,11 +330,14 @@ CDM_t BiSS_C_Master_StateMachine(CDS_t CDS_in) {
 			} 
 			break;
 			
-		case BISS_STATE_ABORT:
+		case BISS_STATE_ABORT:			
+				BiSS.ExternalState = BISS_FAULT;
 				ret = nCDM;
 				BiSS.end_cnt++;
 				if (BiSS.end_cnt == BISS_ABORT_CYCLES){
 					BiSS.end_cnt = 0;
+					/* TODO: Remove BISS_REQ_OK, replace BiSSResetExternalState() in Uart.c */
+					//BiSS.ExternalState = BISS_REQ_OK;
 					BiSS.State = BISS_STATE_IDLE;
 				}
 				break;
@@ -358,8 +361,20 @@ CDM_t BiSS_C_Master_StateMachine(CDS_t CDS_in) {
 		return ret;
 }
 
-void BiSSResetExternalState(void){	
-	BiSS.ExternalState = BISS_REQ_OK;
+BiSSExternalState_t BiSSResetExternalState(void){	
+	BiSSExternalState_t ret = BISS_BUSY;
+	if((BiSS.ExternalState == BISS_READ_FINISHED) || (BiSS.ExternalState == BISS_WRITE_FINISHED)){
+		BiSS.State = BISS_STATE_IDLE;
+		BiSS.ExternalState = ret = BISS_REQ_OK;
+	}
+	else if(BiSS.State == BISS_STATE_IDLE){
+		BiSS.ExternalState = ret = BISS_REQ_OK;
+	}
+	return(ret);
+}
+
+BiSSFaultState_t BiSSGetFaultState(void){
+	return(BiSS.FaultState);
 }
 
 BiSSFaultState_t BiSSGetFaultState(void){

@@ -32,7 +32,8 @@ typedef enum{
 	BISS_REQ_OK = 0, /**< Ready to new request */
 	BISS_BUSY = 1u,	/**< Request is beging processed */
 	BISS_WRITE_FINISHED, /**< Writing Request has been completed */
-	BISS_READ_FINISHED /**< Reading Request has been completed */
+	BISS_READ_FINISHED, /**< Reading Request has been completed */
+	BISS_FAULT,        /**< BiSS Fault State */
 }BiSSExternalState_t;
 
 /**
@@ -107,8 +108,9 @@ BiSSExternalState_t IsBiSSReqBusy(void);
 /**
  * @brief Reset state machine status fuction
  * Should be called after reading/writing completion
+ * @return BiSSExternalState_t BISS_REQ_OK after successful reset
  */
-void BiSSResetExternalState(void);
+BiSSExternalState_t BiSSResetExternalState(void);
 
 /**
  * @brief BiSS fault state request
