@@ -14,6 +14,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include <hw_cfg.h>
 
 /**
  * @struct AngleData_t
@@ -72,6 +73,10 @@ static inline AngleDataRenishaw_t getAngleRenishaw(void){
 }
 
 void SetBiSS_SPI_Ch(BiSS_SPI_Ch_t ch_to_set);
+
+void Stop_Current_Mode(void);
+
+void Change_Current_Mode(BISS_Mode_t New_Mode);
 
 #ifdef __cplusplus
 }

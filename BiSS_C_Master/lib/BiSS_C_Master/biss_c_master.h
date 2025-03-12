@@ -29,7 +29,7 @@ extern "C" {
  * 
  */
 typedef enum{
-	BISS_REQ_OK = 0u, /**< Ready to new request */
+	BISS_REQ_OK = 0, /**< Ready to new request */
 	BISS_BUSY = 1u,	/**< Request is beging processed */
 	BISS_WRITE_FINISHED, /**< Writing Request has been completed */
 	BISS_READ_FINISHED /**< Reading Request has been completed */
@@ -41,7 +41,7 @@ typedef enum{
  * 
  */
 typedef enum{
-	BISS_NO_FAULTS = 0u, /**< OK State */
+	BISS_NO_FAULTS = 0, /**< OK State */
 	BISS_FAULT_IDL = 1u,	/**< ID Lock fault returned */
 	BISS_FAULT_WRITE, /**< Writing fault */
 	BISS_FAULT_READ_CRC /**< CRC of read data fault */

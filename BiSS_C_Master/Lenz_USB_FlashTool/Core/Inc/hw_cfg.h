@@ -13,9 +13,14 @@
 extern "C" {
 #endif
 
+typedef enum{
+	BISS_MODE_SPI = 0,
+	BISS_MODE_UART = 1u,
+	BISS_MODE_UART_IRS = 2u,
+	BISS_MODE_UART_SPI = 3u,  // TODO
+} BISS_Mode_t;
 
-/* BISS C Config*/
-static const enum {BISS_MODE_SPI, BISS_MODE_UART} BISS_MODE = BISS_MODE_UART; // BISS_MODE_UART
+extern volatile BISS_Mode_t Current_Mode;// = BISS_MODE_UART;
 	
 #define BISS_Task_TIM 					TIM7
 #define BISS_Task_IRQHandler 		TIM7_IRQHandler
@@ -50,9 +55,10 @@ static const enum {BISS_MODE_SPI, BISS_MODE_UART} BISS_MODE = BISS_MODE_UART; //
 
 #define BISS2_UART							USART2
 #define DMA_BISS2_UART_RX				DMA1, LL_DMA_CHANNEL_5
+#define DMA_BISS2_UART_TX				DMA1, LL_DMA_CHANNEL_6
 				
 //#define BISS_SLO_DE_PIN					GPIOA, LL_GPIO_PIN_10 /* RS485 Slave Out (uart in_out) Driver enable pin */
-#define BISS_MA_UART_PIN				GPIOA, LL_GPIO_PIN_9
+#define BISS_MA_UART_PIN				GPIOA, LL_GPIO_PIN_15
 #define BISS_SLO_UART_PIN				GPIOB, LL_GPIO_PIN_4
 
 /* END BISS C Config*/
@@ -66,6 +72,8 @@ static const enum {BISS_MODE_SPI, BISS_MODE_UART} BISS_MODE = BISS_MODE_UART; //
 #define LED1_GREEN							GPIOA, LL_GPIO_PIN_12
 #define LED2_RED								GPIOB, LL_GPIO_PIN_5
 #define LED2_GREEN							GPIOB, LL_GPIO_PIN_6
+
+//BISS_MODE BissGetState(void);
 
 
 #ifdef __cplusplus

@@ -613,3 +613,40 @@ void SetBiSS_SPI_Ch(BiSS_SPI_Ch_t ch_to_set){
 		BiSS_SPI_Ch = ch_to_set;
 	}	
 }
+
+void Stop_Current_Mode(void){
+	LED1TurnRed();
+	LED2TurnRed();
+	if(Current_Mode == BISS_MODE_SPI){
+		BISS1_SPI_DeInit();
+		BISS2_SPI_DeInit();
+	}else if(Current_Mode == BISS_MODE_UART){
+		BISS_UART_DeInit();
+		Quadrature_Renishaw_DeInit();
+	} else if(Current_Mode == BISS_MODE_UART_IRS){
+		BISS_USART2_DeInit();
+	} else if(Current_Mode == BISS_MODE_UART_SPI){
+		Quadrature_Renishaw_DeInit();
+		BISS2_SPI_DeInit();
+	}
+}
+
+void Change_Current_Mode(BISS_Mode_t New_Mode){
+	Stop_Current_Mode();
+	Current_Mode = New_Mode;
+	if(Current_Mode == BISS_MODE_SPI){
+		// BISS1_SPI_Init();
+		// BISS2_SPI_Init();
+		BiSS_C_Master_HAL_Init();
+	} else if(Current_Mode == BISS_MODE_UART){
+		USART2_UART_Init();
+		BISS_UART_Init();
+		Quadrature_Renishaw_Init();
+	} else if(Current_Mode == BISS_MODE_UART_IRS){
+		USART2_Init_IRS();
+		USART2_Config_IRS();
+	} else if(Current_Mode == BISS_MODE_UART_SPI){
+		Quadrature_Renishaw_Init();
+		BISS2_SPI_Init();
+	}
+}
