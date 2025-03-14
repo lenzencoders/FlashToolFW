@@ -198,7 +198,7 @@ static void BiSS2_SPI_nCDM_Req(void){
 	BISS2_SPI->CR2 = SPI_CR2_BISS_CFG;
 	LL_DMA_SetDataLength(DMA_BISS2_TX, 5U); // TODO try 1U via define
 	LL_DMA_SetDataLength(DMA_BISS2_RX, 5U); // TODO try 1U via define
-	LL_DMA_EnableChannel(DMA_BISS2_TX);	 
+	LL_DMA_EnableChannel(DMA_BISS2_TX);
 	LL_DMA_EnableChannel(DMA_BISS2_RX);		
 }
 
@@ -231,7 +231,6 @@ static void BiSS2_SPI_CDM_Req(void){
 }
 
 void BissRequest_CDM(void){
-	//switch(BISS_MODE){
 	switch(Current_Mode){
 		case BISS_MODE_SPI:
 			BiSS1_SPI_CDM_Req();
@@ -258,7 +257,6 @@ void BissRequest_CDM(void){
 }
 
 void BissRequest_nCDM(void){
-	//switch(BISS_MODE){
 	switch(Current_Mode){
 		case BISS_MODE_SPI:		
 			BiSS1_SPI_nCDM_Req();
@@ -288,7 +286,6 @@ void BissRequest_nCDM(void){
 uint8_t debug_val = 0;  // DEBUG
 void BISS_Task_IRQHandler(void) {
 	LL_TIM_ClearFlag_UPDATE(BISS_Task_TIM);
-	//switch(BISS_MODE){
 	switch(Current_Mode){
 		case BISS_MODE_SPI:		
 			BISS1_SCD = __REV(BiSS1_SPI_rx.revSCD);
@@ -296,7 +293,6 @@ void BISS_Task_IRQHandler(void) {
 				CRC6_State1 = CRC6_OK;
 				AngleData1.angle_data = BISS1_SCD >> 8;
 				AngleData1.time_of_life_counter++;
-				// LED1TurnGreen();
 				if(((BISS1_SCD >> 6) & 0x3) == 0x3){
  					LED1TurnGreen();
  				}
@@ -313,7 +309,6 @@ void BISS_Task_IRQHandler(void) {
 				CRC6_State2 = CRC6_OK;
 				AngleData2.angle_data = BISS2_SCD >> 8;
 				AngleData2.time_of_life_counter++;
-				// LED2TurnGreen();
 				if(((BISS2_SCD >> 6) & 0x3) == 0x3){
  					LED2TurnGreen();
  				}
@@ -437,21 +432,13 @@ void BISS_Task_IRQHandler(void) {
 	UART_StateMachine();
 }
 
-// DEBUG
-void Delay(uint32_t milliseconds) {
-	for (uint32_t i = 0; i < milliseconds * 1000; i++) {
-        __NOP(); // No operation (adjust based on your platform's clock speed)
-    }
-}
-// DEBUG
 
 void BiSS_C_Master_HAL_Init(void){
 	LED1TurnRed();
 	LED2TurnRed();
-	//switch(BISS_MODE){
 	switch(Current_Mode){
-		case BISS_MODE_SPI:	
-			// Delay(10000);
+		case BISS_MODE_SPI: 
+			// USART2_UART_Init();
 			BISS1_SPI_Init();
 			BISS2_SPI_Init();
 			break;
@@ -474,12 +461,11 @@ void BiSS_C_Master_HAL_Init(void){
 }
 
 static void USART2_IRS_Transmit(uint8_t* data, uint8_t length){
-	LL_DMA_DisableChannel(DMA_BISS2_UART_TX); // Disable DMA channel for TX
-	// LL_DMA_SetMemoryAddress(DMA_BISS2_UART_TX, (uint32_t)usart2_tx_buffer);
+	LL_DMA_DisableChannel(DMA_BISS2_UART_TX);
 	LL_DMA_SetDataLength(DMA_BISS2_UART_TX, length);
 	memcpy(usart2_tx_buffer, data, length);
 	LL_USART_EnableDMAReq_TX(USART2);
-	LL_DMA_EnableChannel(DMA_BISS2_UART_TX); // Reenable DMA channel for TX
+	LL_DMA_EnableChannel(DMA_BISS2_UART_TX);
 	
 	uint32_t timeout = 20000;
 	while(!LL_DMA_IsActiveFlag_HT6(DMA1)){
@@ -496,7 +482,7 @@ static void USART2_IRS_Transmit(uint8_t* data, uint8_t length){
 }
 
 static void USART2_IRS_Receive(uint8_t* data, uint8_t length){
-	uint32_t timeout = 1000000; // wait for dma transfer complete RX data from IRS encoder
+	uint32_t timeout = 1000000;
 	while (!LL_DMA_IsActiveFlag_TC5(DMA1)) {
 		if(--timeout == 0)
 			break;
@@ -509,13 +495,13 @@ static void USART2_IRS_Receive(uint8_t* data, uint8_t length){
 
 static void Reenable_USART2_RX(void)
 {
-	LL_DMA_DisableChannel(DMA_BISS2_UART_RX);  // Disable DMA channel for RX
+	LL_DMA_DisableChannel(DMA_BISS2_UART_RX);
 	
 	LL_DMA_SetMemoryAddress(DMA_BISS2_UART_RX, (uint32_t)usart2_rx_buffer);
 	LL_DMA_SetDataLength(DMA_BISS2_UART_RX, RX_BUF_SIZE);
 	LL_USART_EnableDMAReq_RX(USART2);
 	
-	LL_DMA_EnableChannel(DMA_BISS2_UART_RX);  // Reenable DMA channel for RX
+	LL_DMA_EnableChannel(DMA_BISS2_UART_RX);
 }
 
 void USART2_Write_Read_IRS(uint8_t* txData, uint8_t* rxData, uint8_t data_len)
@@ -546,8 +532,9 @@ static void BISS1_SPI_Init(void)
 	LL_GPIO_SetPinMode(BISS_MA_UART_PIN, LL_GPIO_MODE_ANALOG);
 	
   /**SPI1 GPIO Configuration
-  MA1_PIN   ------> SPI_SCK
-  SLO1_PIN   ------> SPI_MISO
+  MA1_PIN		------> SPI_SCK		------>	PA5
+  SLO1_PIN  ------> SPI_MISO	------>	PA6
+	DE1_PIN		------>						------>	PA10
   */	
 	
 	LL_GPIO_SetOutputPin(PWR1_EN_PIN);
@@ -590,7 +577,8 @@ static void BISS1_SPI_Init(void)
   LL_DMA_SetPeriphSize(DMA_BISS1_TX, LL_DMA_PDATAALIGN_BYTE);
   LL_DMA_SetMemorySize(DMA_BISS1_TX, LL_DMA_MDATAALIGN_BYTE);
 	
-/* Init setup DMA/SPI */	
+	/* Init setup DMA/SPI */
+	LL_SPI_Disable(BISS1_SPI);
 	LL_DMA_SetPeriphAddress(DMA_BISS1_RX, (uint32_t) &BISS1_SPI->DR);
 	LL_DMA_SetMemoryAddress(DMA_BISS1_RX, (uint32_t) &BiSS1_SPI_rx.buf[3]);
 	LL_DMA_SetDataLength(DMA_BISS1_RX, 5);	
@@ -605,13 +593,14 @@ static void BISS1_SPI_Init(void)
 static void BISS2_SPI_Init(void)
 {	
 	
+	LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+	
   /* Peripheral clock enable */
 	
 	LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMAMUX1);
 	LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA1);
 	LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA2);
-	//LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SPI1);
-	LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_SPI3); // DEBUG enable clock for SPI3 and DMA2
+	LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_SPI3);
 	LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);	
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
 	BISS2_SPI_GRP_EN();
@@ -620,30 +609,63 @@ static void BISS2_SPI_Init(void)
 	
 	LL_GPIO_SetPinMode(BISS_MA_UART_PIN, LL_GPIO_MODE_ANALOG);
 	
-  /**SPI1 GPIO Configuration
-  MA2_PIN   ------> SPI_SCK
-  SLO2_PIN   ------> SPI_MISO
+  /**SPI2 GPIO Configuration
+  MA2_PIN   ------> SPI_SCK 	------>	PB3
+  SLO2_PIN  ------> SPI_MISO 	------>	PB4
+	DE2_PIN		------>						------>	PA1
   */
 	
+	/* Enable PWR2 PIN */ 
 	LL_GPIO_SetOutputPin(PWR2_EN_PIN);
 	LL_GPIO_SetPinMode(PWR2_EN_PIN, LL_GPIO_MODE_OUTPUT);
 	LL_GPIO_SetPinOutputType(PWR2_EN_PIN, LL_GPIO_OUTPUT_PUSHPULL);
-
+	
+	/*
 	LL_GPIO_SetOutputPin(DE2_PIN);
 	LL_GPIO_SetPinMode(DE2_PIN, LL_GPIO_MODE_OUTPUT);
 	LL_GPIO_SetPinOutputType(DE2_PIN, LL_GPIO_OUTPUT_PUSHPULL);
+	*/
 	
+	GPIO_InitStruct.Pin = LL_GPIO_PIN_1;
+	GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+	GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+	GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+	GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+	LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+	/* Enable DE2 PIN */
+	LL_GPIO_SetOutputPin(DE2_PIN);
+	
+	
+	GPIO_InitStruct.Pin = LL_GPIO_PIN_3;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  GPIO_InitStruct.Alternate = LL_GPIO_AF_6;
+  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+	/* Enable MA2 PIN */
+	LL_GPIO_SetOutputPin(MA2_PIN);
+	
+	/*
 	LL_GPIO_SetPinMode(MA2_PIN, LL_GPIO_MODE_ALTERNATE);
 	LL_GPIO_SetOutputPin(MA2_PIN);
 	LL_GPIO_SetPinOutputType(MA2_PIN, LL_GPIO_OUTPUT_PUSHPULL);
-	
-	LL_GPIO_SetPinMode(SLO2_PIN, LL_GPIO_MODE_ALTERNATE);
-	
-	BISS2_GPIO_SET_AF();
+	*/
 
-  /* SPI1 DMA Init */
+	GPIO_InitStruct.Pin = LL_GPIO_PIN_4;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  GPIO_InitStruct.Alternate = LL_GPIO_AF_6;
+  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+	// LL_GPIO_SetPinMode(SLO2_PIN, LL_GPIO_MODE_ALTERNATE);
+	
+	// BISS2_GPIO_SET_AF();
 
-  /* SPI1_RX Init */
+  /* SPI2 DMA Init */
+
+  /* SPI2_RX Init */
 	LL_DMA_DisableChannel(DMA_BISS2_RX);
   LL_DMA_SetPeriphRequest(DMA_BISS2_RX, DMA_BISS2_RX_Req);
   LL_DMA_SetDataTransferDirection(DMA_BISS2_RX, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);	
@@ -654,7 +676,7 @@ static void BISS2_SPI_Init(void)
   LL_DMA_SetPeriphSize(DMA_BISS2_RX, LL_DMA_PDATAALIGN_BYTE);
   LL_DMA_SetMemorySize(DMA_BISS2_RX, LL_DMA_MDATAALIGN_BYTE);
 
-  /* SPI1_TX Init */
+  /* SPI2_TX Init */
 	LL_DMA_DisableChannel(DMA_BISS2_TX);
   LL_DMA_SetPeriphRequest(DMA_BISS2_TX, DMA_BISS2_TX_Req);
   LL_DMA_SetDataTransferDirection(DMA_BISS2_TX, LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
@@ -665,7 +687,8 @@ static void BISS2_SPI_Init(void)
   LL_DMA_SetPeriphSize(DMA_BISS2_TX, LL_DMA_PDATAALIGN_BYTE);
   LL_DMA_SetMemorySize(DMA_BISS2_TX, LL_DMA_MDATAALIGN_BYTE);
 	
-	/* Init setup DMA/SPI */	
+	/* Init setup DMA/SPI */
+	LL_SPI_Disable(BISS2_SPI);
 	LL_DMA_SetPeriphAddress(DMA_BISS2_RX, (uint32_t) &BISS2_SPI->DR);
 	LL_DMA_SetMemoryAddress(DMA_BISS2_RX, (uint32_t) &BiSS2_SPI_rx.buf[3]);
 	LL_DMA_SetDataLength(DMA_BISS2_RX, 5);	
@@ -698,13 +721,13 @@ static void USART2_UART_Init(void)
   /* Peripheral clock enable */
 	LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMAMUX1);
 	LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA1);
-	//LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA2);
+	LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA2);
   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_USART2);
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
   LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
   /**USART2 GPIO Configuration
   PA1   ------> USART2_DE
-  PA15   ------> USART2_RX
+  PA15  ------> USART2_RX
   PB3   ------> USART2_TX
   */
   GPIO_InitStruct.Pin = LL_GPIO_PIN_1;
@@ -796,7 +819,7 @@ static void USART2_UART_Init(void)
 
 static void BISS_UART_Init(void)
 {
-	/* Enable enc2 power */
+	/* Enable Power2 Enc PIN */
 	LL_GPIO_SetOutputPin(PWR2_EN_PIN);
 	//LL_GPIO_SetPinMode(PWR2_EN_PIN, LL_GPIO_MODE_OUTPUT);
 	//LL_GPIO_SetPinOutputType(PWR2_EN_PIN, LL_GPIO_OUTPUT_PUSHPULL);
@@ -933,7 +956,6 @@ static void USART2_Config_IRS(void)
 	LL_USART_EnableDMAReq_TX(USART2);
 	LL_USART_EnableDMAReq_RX(USART2);
 	LL_DMA_EnableChannel(DMA_BISS2_UART_RX);
-	// memset((void*)usart2_rx_buffer, 0, RX_BUF_SIZE);  // DEBUG
 	// LL_DMA_EnableChannel(DMA_BISS2_UART_TX);
 }
 
@@ -1076,6 +1098,7 @@ void Stop_Current_Mode(void){
 	LED1TurnRed();
 	LED2TurnRed();
 	if(Current_Mode == BISS_MODE_SPI){
+		// BISS_UART_DeInit();
 		BISS1_SPI_DeInit();
 		BISS2_SPI_DeInit();
 	}else if(Current_Mode == BISS_MODE_UART){
@@ -1097,14 +1120,19 @@ void Change_Current_Mode(BISS_Mode_t New_Mode){
 		// BISS2_SPI_Init();
 		BiSS_C_Master_HAL_Init();
 	} else if(Current_Mode == BISS_MODE_UART){
-		USART2_UART_Init();
-		BISS_UART_Init();
-		Quadrature_Renishaw_Init();
+		// USART2_UART_Init();
+		// BISS_UART_Init();
+		// MX_TIM3_Init();
+		// Quadrature_Renishaw_Init();
+		BiSS_C_Master_HAL_Init();
 	} else if(Current_Mode == BISS_MODE_UART_IRS){
-		USART2_Init_IRS();
-		USART2_Config_IRS();
+		// USART2_Init_IRS();
+		// USART2_Config_IRS();
+		BiSS_C_Master_HAL_Init();
 	} else if(Current_Mode == BISS_MODE_UART_SPI){
-		Quadrature_Renishaw_Init();
-		BISS2_SPI_Init();
+		// MX_TIM3_Init();
+		// Quadrature_Renishaw_Init();
+		// BISS2_SPI_Init();
+		BiSS_C_Master_HAL_Init();
 	}
 }
