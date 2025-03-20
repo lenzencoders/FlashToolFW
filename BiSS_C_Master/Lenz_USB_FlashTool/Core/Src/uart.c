@@ -34,6 +34,8 @@
 #define BSEL_ADDR		    0x40U
 #define FIRST_USER_BANK 0x05U
 
+#define BISS_ABORT_CNT_CYCLES 				14U		/* Cycles to abort control data frame */
+
 const uint16_t error_biss_cmd = 0xDE;
 const uint16_t error_uart_cmd = 0xEF;
 
@@ -72,6 +74,7 @@ typedef enum{
 	UART_ERROR_BISS = 0x03U,
 	UART_ERROR_BISS_WRITE_FAULT = 0x04U,
 	UART_ERROR_BISS_READ_FAULT = 0x05U,
+	UART_ERROR_LEN_DATA_IS_ZERO = 0x06U,
 }UART_Error_t;
 
 volatile enum{
@@ -114,6 +117,7 @@ volatile struct{
 	uint8_t FIFO_current_ptr;
 }ReadingStrRenishaw;
 
+volatile uint8_t cnt_error_cycles = 0;
 UartTxStr_t UART_TX;
 UART_Error_t UART_Error = UART_ERROR_NONE;
 UART_State_t UART_State = UART_STATE_IDLE;
@@ -212,6 +216,16 @@ void UART_StateMachine(void) {
     uint8_t crc;
 		uint8_t calculated_crc;
     uint32_t new_cnt;
+		
+		if(IsBiSSReqBusy() == BISS_FAULT) {
+			cnt_error_cycles++;
+			if (cnt_error_cycles == BISS_ABORT_CNT_CYCLES) {
+				cnt_error_cycles = 0;
+				UART_Error = UART_ERROR_BISS;
+				UART_State = UART_STATE_ABORT;
+				BiSSResetExternalState();
+			}
+		}
 	
 		if(IsBiSSReqBusy() ==	BISS_READ_FINISHED) {
 				UART_Transmit(&UART_TX);
@@ -277,14 +291,15 @@ void UART_StateMachine(void) {
 									UART_Error = UART_ERROR_CRC;
 									UART_State = UART_STATE_CHECKCRC;
 							}
-
               dma_rx_cnt = (dma_rx_cnt + uart_expected_length) % RX_BUFFER_SIZE;
-            } else { //??
+            } else {
+							UART_Error = UART_ERROR_LEN_DATA_IS_ZERO;
 							UART_State = UART_STATE_ABORT;
+							dma_rx_cnt = (dma_rx_cnt + uart_expected_length) % RX_BUFFER_SIZE;
 						} 
             break;
 
-        case UART_STATE_CHECKCRC:
+        case UART_STATE_CHECKCRC: // TODO ???
 						UART_Error = UART_ERROR_CRC;
             UART_State = UART_STATE_ABORT;  // TODO  handle CRC error
             break;
@@ -336,16 +351,16 @@ void UART_StateMachine(void) {
 									
 								case UART_COMMAND_CHANGE_MODE:
 									if (cmd_data[0] == 0) {
-										if (Current_Mode != BISS_MODE_SPI){
-											Change_Current_Mode(BISS_MODE_SPI);
+										if (Current_Mode != BISS_MODE_SPI_SPI){
+											Change_Current_Mode(BISS_MODE_SPI_SPI);
 										}
 									} else if (cmd_data[0] == 1) {
-										if (Current_Mode != BISS_MODE_UART){
-											Change_Current_Mode(BISS_MODE_UART);
+										if (Current_Mode != BISS_MODE_AB_UART){
+											Change_Current_Mode(BISS_MODE_AB_UART);
 										}
 									} else if (cmd_data[0] == 2) {
-										if (Current_Mode != BISS_MODE_UART_IRS){
-											Change_Current_Mode(BISS_MODE_UART_IRS);
+										if (Current_Mode != BISS_MODE_SPI_UART_IRS){
+											Change_Current_Mode(BISS_MODE_SPI_UART_IRS);
 										}
 									} else if (cmd_data[0] == 3) {
 										if (Current_Mode != BISS_MODE_UART_SPI){
@@ -434,16 +449,18 @@ void UART_StateMachine(void) {
 								case UART_COMMAND_WRITE_REG:
 									if (IsBiSSReqBusy() != BISS_BUSY) {
 										if (BiSSRequestWrite(cmd_addr, cmd_data_len, cmd_data) == BISS_REQ_OK) {
+											
 											UART_State = UART_STATE_IDLE;
 											queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
 											queue_cnt--;
 											retry_cnt = 0;
+									
 										} else {
 											retry_cnt++;
 											if (retry_cnt >= MAX_RETRY) {
 												if(BiSSGetFaultState() == BISS_NO_FAULTS) {
-														UART_State = UART_STATE_IDLE;
-														retry_cnt = 0;
+													UART_State = UART_STATE_IDLE;
+													retry_cnt = 0;
 												} else {
 													UART_Error = UART_ERROR_BISS;
 													UART_State = UART_STATE_ABORT;
@@ -472,12 +489,13 @@ void UART_StateMachine(void) {
 											UART_TX.adr_l = cmd_addr & 0xFFU;
 											
 											if (BiSSRequestRead(cmd_addr, cmd_data_len, UART_TX.Buf) == BISS_REQ_OK) {
+												
 												UART_State = UART_STATE_IDLE;
 												
 												queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
 												queue_cnt--;
-
-												//TODO add retry
+												retry_cnt = 0;
+											
 											} else {
 												retry_cnt++;
 												if (retry_cnt >= MAX_RETRY) {
@@ -503,7 +521,7 @@ void UART_StateMachine(void) {
 												retry_cnt = 0;
 											}
 										}
-										break;
+									break;
 													
 								case UART_COMMAND_WRITE_READ_ENC_USART2:
 										UART_TX.cmd = command;
@@ -759,14 +777,22 @@ void UART_StateMachine(void) {
 							break;
 						case UART_ERROR_BISS:
 							UART_TX.cmd = error_biss_cmd;
-							UART_TX.len = 0+1;  // TODO: add BiSSExternalState_t ??? 
+							UART_TX.len = 0+1;  
 							UART_TX.adr_h = 0;
 							UART_TX.adr_l = 0;
 							UART_TX.Buf[0] = (uint8_t)BiSSGetFaultState();
-							// UART_TX.Buf[1] = (uint8_t)IsBiSSReqBusy();
+							// UART_TX.Buf[1] = (uint8_t)IsBiSSReqBusy(); // TODO: add BiSSExternalState_t ??? 
 							UART_Transmit(&UART_TX);
 							UART_Error = UART_ERROR_NONE;
 							break;
+						case UART_ERROR_LEN_DATA_IS_ZERO:
+							UART_TX.cmd = error_uart_cmd;
+							UART_TX.len = 0+1;
+							UART_TX.adr_h = 0;
+							UART_TX.adr_l = 0;
+							UART_TX.Buf[0] = (uint8_t)UART_Error;
+							UART_Transmit(&UART_TX);
+							UART_Error = UART_ERROR_NONE;
 						default:
 							__NOP();
 							__NOP();
@@ -774,12 +800,6 @@ void UART_StateMachine(void) {
 							UART_State = UART_STATE_IDLE;
 							break;
 					}
-					/*
-					__NOP();
-					__NOP();
-					__NOP();
-          UART_State = UART_STATE_IDLE;
-          break;*/
 					break;
 
         default:

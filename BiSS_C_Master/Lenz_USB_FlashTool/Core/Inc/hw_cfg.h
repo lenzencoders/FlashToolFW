@@ -14,13 +14,15 @@ extern "C" {
 #endif
 
 typedef enum{
-	BISS_MODE_SPI = 0,
-	BISS_MODE_UART = 1u,
-	BISS_MODE_UART_IRS = 2u,
+	BISS_MODE_SPI_SPI = 0,
+	BISS_MODE_AB_UART = 1u,
+	BISS_MODE_SPI_UART_IRS = 2u,
 	BISS_MODE_UART_SPI = 3u,  // TODO
 } BISS_Mode_t;
 
-extern volatile BISS_Mode_t Current_Mode;// = BISS_MODE_UART;
+extern volatile BISS_Mode_t Current_Mode;
+
+// #define CH1_SSI
 	
 #define BISS_Task_TIM 					TIM7
 #define BISS_Task_IRQHandler 		TIM7_IRQHandler

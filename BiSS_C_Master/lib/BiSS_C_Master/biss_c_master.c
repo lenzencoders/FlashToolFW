@@ -370,6 +370,9 @@ BiSSExternalState_t BiSSResetExternalState(void){
 	else if(BiSS.State == BISS_STATE_IDLE){
 		BiSS.ExternalState = ret = BISS_REQ_OK;
 	}
+	else if(BiSS.ExternalState == BISS_FAULT){
+		BiSS.ExternalState = ret = BISS_REQ_OK;
+	}
 	return(ret);
 }
 
