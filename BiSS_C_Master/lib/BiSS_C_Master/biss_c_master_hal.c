@@ -101,7 +101,7 @@ SPI_rx_t BiSS2_SPI_rx;
 USART_rx_t USART_rx;
 // volatile uint8_t biss_rx_buffer[5] = {0};
 
-volatile BISS_Mode_t Current_Mode = BISS_MODE_SPI_SPI; // BISS_MODE_SPI_SPI or BISS_MODE_AB_UART or BISS_MODE_SPI_UART_IRS or BISS_MODE_UART_SPI
+volatile BISS_Mode_t Current_Mode = BISS_MODE_SPI_SPI; // BISS_MODE_SPI_SPI or BISS_MODE_AB_UART or BISS_MODE_SPI_UART_IRS or BISS_MODE_AB_SPI
 volatile BiSS_SPI_Ch_t BiSS_SPI_Ch = BISS_SPI_CH_2; // BISS_SPI_CH_1 or BISS_SPI_CH_2
 
 volatile CDS_t USART_CDS_last = CDS;
@@ -159,7 +159,7 @@ static void BISS2_SPI_DeInit(void);
 static void BISS_UART_Init(void);
 static void BISS_UART_DeInit(void);
 static void USART2_UART_Init(void);
-static void MX_TIM3_Init(void);
+static void MX_TIM3_ENC_Init(void);
 static void Quadrature_Renishaw_Init(void);
 static void Quadrature_Renishaw_DeInit(void);
 
@@ -242,6 +242,7 @@ void BissRequest_CDM(void){
 	switch(Current_Mode){
 		case BISS_MODE_SPI_SPI:
 			BiSS1_SPI_CDM_Req();
+			BiSS2_SPI_CDM_Req();
 			break;
 		case BISS_MODE_AB_UART:
 			LL_DMA_DisableChannel(DMA_BISS2_UART_RX);
@@ -258,7 +259,7 @@ void BissRequest_CDM(void){
 			break;
 		case BISS_MODE_SPI_UART_IRS:
 			break;
-		case BISS_MODE_UART_SPI:
+		case BISS_MODE_AB_SPI:
 			BiSS2_SPI_CDM_Req();
 			break;
 	}
@@ -285,13 +286,12 @@ void BissRequest_nCDM(void){
 			break;
 		case BISS_MODE_SPI_UART_IRS:
 			break;
-		case BISS_MODE_UART_SPI:
+		case BISS_MODE_AB_SPI:
 			BiSS2_SPI_nCDM_Req();
 			break;
 	}		
 }
 
-uint8_t debug_val = 0;  // DEBUG
 void BISS_Task_IRQHandler(void) {
 	LL_TIM_ClearFlag_UPDATE(BISS_Task_TIM);
 	switch(Current_Mode){
@@ -384,6 +384,7 @@ void BISS_Task_IRQHandler(void) {
 			
 		case BISS_MODE_AB_UART:		
 			if(LL_DMA_GetDataLength(DMA_BISS2_UART_RX) == 0){
+				/*
 				if(BiSS_SPI_Ch == BISS_SPI_CH_1){
 					if(BISS_CRC6_Calc(USART_rx.Data4CRC) == USART_rx.CRC6){
 						CRC6_State1 = CRC6_OK;
@@ -396,17 +397,27 @@ void BISS_Task_IRQHandler(void) {
 						CRC6_State1 = CRC6_FAULT;
 					}
 				} else if (BiSS_SPI_Ch == BISS_SPI_CH_2){
-					if(BISS_CRC6_Calc(USART_rx.Data4CRC) == USART_rx.CRC6){
-						CRC6_State1 = CRC6_OK;
-						AngleData2.angle_data = USART_rx.Pos;
-						AngleData2.time_of_life_counter++;
-						LED2TurnGreen();
+				if(BISS_CRC6_Calc(USART_rx.Data4CRC) == USART_rx.CRC6){
+					CRC6_State2 = CRC6_OK;
+					AngleData2.angle_data = USART_rx.Pos;
+					AngleData2.time_of_life_counter++;
+					LED2TurnGreen();
 					}
 					else{
 						LED2TurnRed();
-						CRC6_State1 = CRC6_FAULT;
+						CRC6_State2 = CRC6_FAULT;
 					}
-				}			
+				}*/
+				if(BISS_CRC6_Calc(USART_rx.Data4CRC) == USART_rx.CRC6){
+					CRC6_State2 = CRC6_OK;
+					AngleData2.angle_data = USART_rx.Pos;
+					AngleData2.time_of_life_counter++;
+					LED2TurnGreen();
+				}
+				else{
+					LED2TurnRed();
+					CRC6_State2 = CRC6_FAULT;
+				}				
 				if (BiSS_C_Master_StateMachine(USART_CDS_last) == CDM) {
 					BissRequest_CDM();
 					last_CDM = CDM;
@@ -419,6 +430,7 @@ void BISS_Task_IRQHandler(void) {
 				adr_reset_cou = 0;
 			}
 			else{
+				LED2TurnRed();
 				adr_reset_cou++;
 				if(adr_reset_cou == 255){
 					RS485_ADR = RS485_ADR == RS485_ADR1? RS485_ADR2 : RS485_ADR1;
@@ -432,20 +444,16 @@ void BISS_Task_IRQHandler(void) {
 			}
 			if (LL_TIM_IsActiveFlag_UPDATE(TIM_RENISHAW)){
 				AngleDataRenishaw.angle_data = LL_TIM_GetCounter(TIM_RENISHAW);
-				//LED2TurnGreen();
+				//LED1TurnGreen();
 			} else {
-				LED2TurnRed();
+				LED1TurnRed();
 			}
 			break;
 			
 		case BISS_MODE_SPI_UART_IRS:
-			++debug_val;  // DEBUG
-			if(debug_val == 0xFF){
-				debug_val = 0;
-			}
 			break;
 			
-		case BISS_MODE_UART_SPI:
+		case BISS_MODE_AB_SPI:
 			BISS2_SCD = __REV(BiSS2_SPI_rx.revSCD);
 			if(BISS_CRC6_Calc(BISS2_SCD >> 6) == (BISS2_SCD & 0x3FU)){
 				CRC6_State2 = CRC6_OK;
@@ -478,7 +486,7 @@ void BiSS_C_Master_HAL_Init(void){
 			BISS2_SPI_Init();
 			break;
 		case BISS_MODE_AB_UART:
-			MX_TIM3_Init();
+			MX_TIM3_ENC_Init();
 			Quadrature_Renishaw_Init();
 			USART2_UART_Init();
 			BISS_UART_Init();
@@ -488,8 +496,8 @@ void BiSS_C_Master_HAL_Init(void){
 			USART2_Init_IRS();
 			USART2_Config_IRS();
 			break;
-		case BISS_MODE_UART_SPI:
-			MX_TIM3_Init();
+		case BISS_MODE_AB_SPI:
+			MX_TIM3_ENC_Init();
 			Quadrature_Renishaw_Init();
 			BISS2_SPI_Init();
 			break;
@@ -1036,7 +1044,7 @@ static void USART2_Config_IRS(void)
   * @param None
   * @retval None
   */
-static void MX_TIM3_Init(void)
+static void MX_TIM3_ENC_Init(void)
 {
 
   /* USER CODE BEGIN TIM3_Init 0 */
@@ -1105,6 +1113,7 @@ static void MX_TIM3_Init(void)
 static void Quadrature_Renishaw_Init(void){
 	LL_GPIO_ResetOutputPin(DE1_PIN);
 	LL_GPIO_SetOutputPin(PWR1_EN_PIN);
+	LL_TIM_SetCounter(TIM_RENISHAW, 0);
 	LL_TIM_EnableCounter(TIM_RENISHAW);
 }
 
@@ -1172,7 +1181,6 @@ void Stop_Current_Mode(void){
 	LED1TurnRed();
 	LED2TurnRed();
 	if(Current_Mode == BISS_MODE_SPI_SPI){
-		// BISS_UART_DeInit();
 		BISS1_SPI_DeInit();
 		BISS2_SPI_DeInit();
 	}else if(Current_Mode == BISS_MODE_AB_UART){
@@ -1181,7 +1189,7 @@ void Stop_Current_Mode(void){
 	} else if(Current_Mode == BISS_MODE_SPI_UART_IRS){
 		BISS1_SPI_DeInit();
 		BISS_USART2_DeInit();
-	} else if(Current_Mode == BISS_MODE_UART_SPI){
+	} else if(Current_Mode == BISS_MODE_AB_SPI){
 		Quadrature_Renishaw_DeInit();
 		BISS2_SPI_DeInit();
 	}
@@ -1191,23 +1199,12 @@ void Change_Current_Mode(BISS_Mode_t New_Mode){
 	Stop_Current_Mode();
 	Current_Mode = New_Mode;
 	if(Current_Mode == BISS_MODE_SPI_SPI){
-		// BISS1_SPI_Init();
-		// BISS2_SPI_Init();
 		BiSS_C_Master_HAL_Init();
 	} else if(Current_Mode == BISS_MODE_AB_UART){
-		// USART2_UART_Init();
-		// BISS_UART_Init();
-		// MX_TIM3_Init();
-		// Quadrature_Renishaw_Init();
 		BiSS_C_Master_HAL_Init();
 	} else if(Current_Mode == BISS_MODE_SPI_UART_IRS){
-		// USART2_Init_IRS();
-		// USART2_Config_IRS();
 		BiSS_C_Master_HAL_Init();
-	} else if(Current_Mode == BISS_MODE_UART_SPI){
-		// MX_TIM3_Init();
-		// Quadrature_Renishaw_Init();
-		// BISS2_SPI_Init();
+	} else if(Current_Mode == BISS_MODE_AB_SPI){
 		BiSS_C_Master_HAL_Init();
 	}
 }

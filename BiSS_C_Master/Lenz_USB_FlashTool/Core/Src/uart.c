@@ -363,8 +363,8 @@ void UART_StateMachine(void) {
 											Change_Current_Mode(BISS_MODE_SPI_UART_IRS);
 										}
 									} else if (cmd_data[0] == 3) {
-										if (Current_Mode != BISS_MODE_UART_SPI){
-											Change_Current_Mode(BISS_MODE_UART_SPI);
+										if (Current_Mode != BISS_MODE_AB_SPI){
+											Change_Current_Mode(BISS_MODE_AB_SPI);
 										}
 									}
 									UART_State = UART_STATE_IDLE;
