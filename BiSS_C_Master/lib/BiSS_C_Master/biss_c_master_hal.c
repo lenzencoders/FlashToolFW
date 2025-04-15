@@ -585,37 +585,38 @@ static void BISS1_SPI_Init(void)
 	LL_GPIO_SetOutputPin(PWR1_EN_PIN);
 	LL_GPIO_SetPinMode(PWR1_EN_PIN, LL_GPIO_MODE_OUTPUT);
 	LL_GPIO_SetPinOutputType(DE1_PIN, LL_GPIO_OUTPUT_PUSHPULL);
-	
+	/*
 	GPIO_InitStruct.Pin = LL_GPIO_PIN_10;
 	GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
 	GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
 	GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
 	GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
 	LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+	*/
 	/* Enable DE2 PIN */
-	LL_GPIO_SetOutputPin(DE1_PIN);
+	/*LL_GPIO_SetOutputPin(DE1_PIN);*/
 	
-	
+	/*
 	GPIO_InitStruct.Pin = LL_GPIO_PIN_5;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
   GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   GPIO_InitStruct.Alternate = LL_GPIO_AF_6;
-  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);*/
 	/* Enable MA2 PIN */
-	LL_GPIO_SetOutputPin(MA1_PIN);
+	/*LL_GPIO_SetOutputPin(MA1_PIN);*/
 	
-	
+	/*
 	GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
   GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   GPIO_InitStruct.Alternate = LL_GPIO_AF_6;
-  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);*/
 
-	/*
+	
 	LL_GPIO_SetOutputPin(DE1_PIN);
 	LL_GPIO_SetPinMode(DE1_PIN, LL_GPIO_MODE_OUTPUT);
 	LL_GPIO_SetPinOutputType(DE1_PIN, LL_GPIO_OUTPUT_PUSHPULL);
@@ -627,7 +628,7 @@ static void BISS1_SPI_Init(void)
 	LL_GPIO_SetPinMode(SLO1_PIN, LL_GPIO_MODE_ALTERNATE);
 	
 	BISS1_GPIO_SET_AF();
-	*/
+	
 
   /* SPI1 DMA Init */
 
