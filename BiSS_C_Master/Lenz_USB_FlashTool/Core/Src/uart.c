@@ -538,6 +538,7 @@ void UART_StateMachine(void) {
 									break;
 								
 								case UART_COMMAND_READ_ANGLE_IRS_ENC_SPI:
+								case UART_COMMAND_READ_ANGLE_ENC_SPI_CURRENT:
 										UART_TX.cmd = command;
 										// UART_TX.len = ANGLE_SIZE;
 										UART_TX.len = cmd_data_len;
