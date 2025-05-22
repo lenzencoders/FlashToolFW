@@ -15,6 +15,9 @@ extern "C" {
 
 #include <stdint.h>
 #include <hw_cfg.h>
+#include "stm32g4xx_ll_gpio.h"
+
+// #define PWR1_EN_PIN  GPIOA, LL_GPIO_PIN_8
 
 /**
  * @struct AngleData_t
@@ -23,7 +26,7 @@ extern "C" {
  */
 typedef struct{
     uint32_t angle_data:24; /**< Value of Angle */
-    uint32_t time_of_life_counter:8; /**< Value of time of life countre to check
+    uint32_t time_of_life_counter:8; /**< Value of time of life counter to check
 	that angle was updated*/
 } AngleData_t;
 
@@ -41,11 +44,24 @@ typedef enum{
 }BiSS_SPI_Ch_t;
 
 extern volatile BiSS_SPI_Ch_t BiSS_SPI_Ch;
+
+typedef struct {
+    GPIO_TypeDef* port;
+    uint32_t pin;
+} PinDef;
+
+extern volatile PinDef PWR1_EN_PIN;
+
+// PinDef PWR1_EN_PIN;
+// PWR1_EN_PIN.port = GPIOB;
+// PWR1_EN_PIN.pin = PWR1_EN_PIN;
+
 /**
  * @brief BiSS C Master hardware abstruction layer initialization function
  * 
  */
 void BiSS_C_Master_HAL_Init(void);
+void Current_Sensor_Init(void);
 
 /**
  * @brief Get the Angle object
@@ -80,7 +96,11 @@ void Stop_Current_Mode(void);
 
 void Change_Current_Mode(BISS_Mode_t New_Mode);
 
+void Change_Current_Sensor_Mode(Current_Sensor_Mode_t New_Mode);
+
 void USART2_Write_Read_IRS(uint8_t* txData, uint8_t* rxData, uint8_t data_len);
+
+int32_t Read_Current_Enc2(void);
 
 #ifdef __cplusplus
 }

@@ -22,12 +22,20 @@ typedef enum{
 
 extern volatile BISS_Mode_t Current_Mode;
 
+typedef enum{
+	CURRENT_SENSOR_MODE_DISABLE = 0,
+	CURRENT_SENSOR_MODE_ENABLE = 1,
+} Current_Sensor_Mode_t;
+
+extern volatile Current_Sensor_Mode_t Current_Sensor_Mode;
+
 // #define CH1_SSI
 	
 #define BISS_Task_TIM 					TIM7
 #define BISS_Task_IRQHandler 		TIM7_IRQHandler
 #define DMA_LPUART_RX 					DMA1, LL_DMA_CHANNEL_1
 #define DMA_LPUART_TX 					DMA1, LL_DMA_CHANNEL_2
+#define DMA_ADC1							  DMA1, LL_DMA_CHANNEL_6
 
 /* BiSS1 SPI Config*/
 #define BISS1_SPI								SPI1
