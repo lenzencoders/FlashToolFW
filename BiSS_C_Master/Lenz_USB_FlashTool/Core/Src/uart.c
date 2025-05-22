@@ -40,11 +40,11 @@ const uint16_t error_biss_cmd = 0xDE;
 const uint16_t error_uart_cmd = 0xEF;
 
 static void EncoderPowerEnable(void){
-	LL_GPIO_SetOutputPin(PWR1_EN_PIN);
+	LL_GPIO_SetOutputPin(PWR1_EN_PIN.port, PWR1_EN_PIN.pin);
 }
 
 static void EncoderPowerDisable(void){
-	LL_GPIO_ResetOutputPin(PWR1_EN_PIN);
+	LL_GPIO_ResetOutputPin(PWR1_EN_PIN.port, PWR1_EN_PIN.pin);
 }
 
 static void EncoderSecondPowerEnable(void){
@@ -61,9 +61,10 @@ typedef enum{
 	UART_STATE_SEND,
 	UART_STATE_CHECKCRC,
 	UART_STATE_RUNCMD,
-	UART_STATE_ANGLE_READING_TWO_ENC_SPI,
+	UART_STATE_ANGLE_READING_TWO_ENC_AB_SPI,
 	UART_STATE_ANGLE_READING_TWO_ENC_AB_UART,
-	UART_STATE_ANGLE_READING,
+	UART_STATE_ANGLE_READING_TWO_ENC_SPI,
+	UART_STATE_ANGLE_READING_ENC_SPI,
 	UART_STATE_ABORT,
 }UART_State_t;
 
@@ -216,7 +217,7 @@ void UART_StateMachine(void) {
     uint8_t crc;
 		uint8_t calculated_crc;
     uint32_t new_cnt;
-		
+
 		if(IsBiSSReqBusy() == BISS_FAULT) {
 			cnt_error_cycles++;
 			if (cnt_error_cycles == BISS_ABORT_CNT_CYCLES) {
@@ -371,7 +372,7 @@ void UART_StateMachine(void) {
 									queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
 									queue_cnt--;
 									break;
-									
+																	
 								case UART_COMMAND_PAGE:
 									if (IsBiSSReqBusy() != BISS_BUSY) {
 										uint8_t cmd_data_page = cmd_data[0];
@@ -554,20 +555,69 @@ void UART_StateMachine(void) {
 								
 										UART_State = UART_STATE_IDLE;
 									break;
+
+								case UART_COMMAND_CHANGE_CURRENT_SENSOR_MODE:
+									if (cmd_data[0] == 0) {
+										if (Current_Sensor_Mode != CURRENT_SENSOR_MODE_DISABLE){
+											Change_Current_Sensor_Mode(CURRENT_SENSOR_MODE_DISABLE);
+										}
+									} else if (cmd_data[0] == 1) {
+										if (Current_Sensor_Mode != CURRENT_SENSOR_MODE_ENABLE){
+											Change_Current_Sensor_Mode(CURRENT_SENSOR_MODE_ENABLE);
+										}
+									}
+									UART_State = UART_STATE_IDLE;
+									queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+									queue_cnt--;
+									break;
 								
-								case UART_COMMAND_READ_ANGLE_TWO_ENC_AB_UART:		
+								case UART_COMMAND_READ_ENC2_CURRENT:
+									UART_TX.cmd = command;
+									UART_TX.len = cmd_data_len;
+									UART_TX.adr_h = 0;
+									UART_TX.adr_l = 0;
+									if (Current_Sensor_Mode == CURRENT_SENSOR_MODE_ENABLE){
+										int32_t current = Read_Current_Enc2();
+										memcpy(&UART_TX.Buf[0], &current, sizeof(current));
+										UART_Transmit(&UART_TX);
+									}
+									UART_State = UART_STATE_IDLE;
+									queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+									queue_cnt--;
+									break;
+										
+								case UART_COMMAND_READ_ANGLE_TWO_ENC_AB_SPI:
 										UART_TX.cmd = command;
 										UART_TX.len = UART_ANGLE_TWO_ENC_AB_UART_BUF_SIZE;
-								
-										ReadingStrEnc1.len = cmd_addr + 1;// Address = buf_size * 63
-										ReadingStrEnc1.FIFO_current_ptr = 0;
-										ReadingStrEnc1.FIFO_start_ptr = 0;
-										ReadingStrEnc1.ToL_cnt = 0;
 								
 										ReadingStrRenishaw.len = cmd_addr + 1;// Address = buf_size * 63
 										ReadingStrRenishaw.FIFO_current_ptr = 0;
 										ReadingStrRenishaw.FIFO_start_ptr = 0;
+										
+										ReadingStrEnc2.len = cmd_addr + 1; // Address = buf_size * 63
+										ReadingStrEnc2.FIFO_current_ptr = 0;
+										ReadingStrEnc2.FIFO_start_ptr = 0;
+										ReadingStrEnc2.ToL_cnt = 0;
+								
+										queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+										queue_cnt--;
+								
+										UART_State = UART_STATE_ANGLE_READING_TWO_ENC_AB_SPI;
+									break;
+								
+								case UART_COMMAND_READ_ANGLE_TWO_ENC_AB_UART:		
+										UART_TX.cmd = command;
+										UART_TX.len = UART_ANGLE_TWO_ENC_AB_UART_BUF_SIZE;
+														
+										ReadingStrRenishaw.len = cmd_addr + 1;// Address = buf_size * 63
+										ReadingStrRenishaw.FIFO_current_ptr = 0;
+										ReadingStrRenishaw.FIFO_start_ptr = 0;
 										//ReadingStrRenishaw.ToL_cnt = 0;
+								
+										ReadingStrEnc2.len = cmd_addr + 1;// Address = buf_size * 63
+										ReadingStrEnc2.FIFO_current_ptr = 0;
+										ReadingStrEnc2.FIFO_start_ptr = 0;
+										ReadingStrEnc2.ToL_cnt = 0;
 								
 										queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
 										queue_cnt--;
@@ -595,7 +645,7 @@ void UART_StateMachine(void) {
 										UART_State = UART_STATE_ANGLE_READING_TWO_ENC_SPI;
 										break;
 								
-								case UART_COMMAND_READ_ANGLE:			
+								case UART_COMMAND_READ_ANGLE_ENC_SPI:			
 										UART_TX.cmd = command;
 										UART_TX.len = UART_ANGLE_BUF_SIZE;
 
@@ -615,7 +665,7 @@ void UART_StateMachine(void) {
 										queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
 										queue_cnt--;
 
-										UART_State = UART_STATE_ANGLE_READING;
+										UART_State = UART_STATE_ANGLE_READING_ENC_SPI;
 										break;
 
 								case UART_COMMAND_NRST:		
@@ -628,6 +678,42 @@ void UART_StateMachine(void) {
 							}
 						}
             break;
+						
+				case UART_STATE_ANGLE_READING_TWO_ENC_AB_SPI:
+					if(ReadingStrEnc2.len > 0) {
+						AngleDataRenishaw_t angle_data1 = getAngleRenishaw();
+						AngleData_t angle_data2 = getAngle2();
+						
+						if(angle_data2.time_of_life_counter != ReadingStrEnc2.ToL_cnt) {
+							
+							ReadingStrRenishaw.AngleFIFO[ReadingStrRenishaw.FIFO_current_ptr] = angle_data1;
+							ReadingStrRenishaw.FIFO_current_ptr++;
+							
+							ReadingStrEnc2.ToL_cnt = angle_data2.time_of_life_counter;
+							ReadingStrEnc2.AngleFIFO[ReadingStrEnc2.FIFO_current_ptr] = angle_data2;
+							ReadingStrEnc2.FIFO_current_ptr++;
+							
+							if((((uint16_t)ReadingStrEnc2.FIFO_current_ptr + 256 - ReadingStrEnc2.FIFO_start_ptr) & 0xFFU) >= UART_ANGLE_TWO_ENC_AB_UART_LEN) {
+								uint8_t TxBufCnt = 0;
+								while(ReadingStrEnc2.FIFO_start_ptr != ReadingStrEnc2.FIFO_current_ptr) {
+									*((AngleData_t*)&UART_TX.Buf[TxBufCnt]) = ReadingStrEnc2.AngleFIFO[ReadingStrEnc2.FIFO_start_ptr];
+									TxBufCnt += 4;
+									*((AngleDataRenishaw_t*)&UART_TX.Buf[TxBufCnt]) = ReadingStrRenishaw.AngleFIFO[ReadingStrRenishaw.FIFO_start_ptr];
+									TxBufCnt += 2;
+									ReadingStrEnc2.FIFO_start_ptr++; 
+									ReadingStrRenishaw.FIFO_start_ptr++; 
+								}
+								ReadingStrRenishaw.len--;
+								ReadingStrEnc2.len--;
+								UART_TX.adr_h = (ReadingStrEnc2.len >> 8U) & 0xFFU;
+								UART_TX.adr_l = ReadingStrEnc2.len & 0xFFU;
+								UART_Transmit(&UART_TX);
+							}
+						}
+					} else {
+						UART_State = UART_STATE_IDLE;
+					}
+					break;
 						
 				case UART_STATE_ANGLE_READING_TWO_ENC_SPI:
 						if(ReadingStrEnc1.len > 0) {
@@ -667,34 +753,34 @@ void UART_StateMachine(void) {
 					break;
 				
 				case UART_STATE_ANGLE_READING_TWO_ENC_AB_UART:
-					if(ReadingStrEnc1.len > 0) {
-						AngleData_t angle_data1 = getAngle1();
-						AngleDataRenishaw_t angle_data2 = getAngleRenishaw();
+					if(ReadingStrEnc2.len > 0) {
+						AngleData_t angle_data2 = getAngle2();
+						AngleDataRenishaw_t angle_data1 = getAngleRenishaw();
 						
-						if(angle_data1.time_of_life_counter != ReadingStrEnc1.ToL_cnt) {
+						if(angle_data2.time_of_life_counter != ReadingStrEnc2.ToL_cnt) {
 								
-								ReadingStrEnc1.ToL_cnt = angle_data1.time_of_life_counter;
-								ReadingStrEnc1.AngleFIFO[ReadingStrEnc1.FIFO_current_ptr] = angle_data1;
-								ReadingStrEnc1.FIFO_current_ptr++;
+								ReadingStrEnc2.ToL_cnt = angle_data2.time_of_life_counter;
+								ReadingStrEnc2.AngleFIFO[ReadingStrEnc2.FIFO_current_ptr] = angle_data2;
+								ReadingStrEnc2.FIFO_current_ptr++;
 								
 								//ReadingStrRenishaw.ToL_cnt = angle_data1.time_of_life_counter;
-								ReadingStrRenishaw.AngleFIFO[ReadingStrRenishaw.FIFO_current_ptr] = angle_data2;
+								ReadingStrRenishaw.AngleFIFO[ReadingStrRenishaw.FIFO_current_ptr] = angle_data1;
 								ReadingStrRenishaw.FIFO_current_ptr++;
 								
-								if((((uint16_t)ReadingStrEnc1.FIFO_current_ptr + 256 - ReadingStrEnc1.FIFO_start_ptr) & 0xFFU) >= UART_ANGLE_TWO_ENC_AB_UART_LEN) {
+								if((((uint16_t)ReadingStrEnc2.FIFO_current_ptr + 256 - ReadingStrEnc2.FIFO_start_ptr) & 0xFFU) >= UART_ANGLE_TWO_ENC_AB_UART_LEN) {
 									uint8_t TxBufCnt = 0;
-									while(ReadingStrEnc1.FIFO_start_ptr != ReadingStrEnc1.FIFO_current_ptr) {
-										*((AngleData_t*)&UART_TX.Buf[TxBufCnt]) = ReadingStrEnc1.AngleFIFO[ReadingStrEnc1.FIFO_start_ptr];
+									while(ReadingStrEnc2.FIFO_start_ptr != ReadingStrEnc2.FIFO_current_ptr) {
+										*((AngleData_t*)&UART_TX.Buf[TxBufCnt]) = ReadingStrEnc2.AngleFIFO[ReadingStrEnc2.FIFO_start_ptr];
 										TxBufCnt += 4;
 										*((AngleDataRenishaw_t*)&UART_TX.Buf[TxBufCnt]) = ReadingStrRenishaw.AngleFIFO[ReadingStrRenishaw.FIFO_start_ptr];
 										TxBufCnt += 2;
-										ReadingStrEnc1.FIFO_start_ptr++; 
+										ReadingStrEnc2.FIFO_start_ptr++; 
 										ReadingStrRenishaw.FIFO_start_ptr++; 
 									}
-									ReadingStrEnc1.len--; 
+									ReadingStrEnc2.len--; 
 									ReadingStrRenishaw.len--; 
-									UART_TX.adr_h = (ReadingStrEnc1.len >> 8U) & 0xFFU;
-									UART_TX.adr_l = ReadingStrEnc1.len & 0xFFU;
+									UART_TX.adr_h = (ReadingStrEnc2.len >> 8U) & 0xFFU;
+									UART_TX.adr_l = ReadingStrEnc2.len & 0xFFU;
 									UART_Transmit(&UART_TX);
 								}
 							}
@@ -703,7 +789,7 @@ void UART_StateMachine(void) {
 					}
 					break;
 				
-				case UART_STATE_ANGLE_READING:
+				case UART_STATE_ANGLE_READING_ENC_SPI:
 					if(BiSS_SPI_Ch == BISS_SPI_CH_1) {
 						if(ReadingStrEnc1.len > 0) {	
 							AngleData_t angle_data = getAngle1();

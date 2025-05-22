@@ -64,7 +64,7 @@ extern volatile BISS_Mode_t Current_Mode;
 #define BISS_SLO_UART_PIN				GPIOB, LL_GPIO_PIN_4
 
 /* END BISS C Config*/
-#define PWR1_EN_PIN							GPIOB, LL_GPIO_PIN_0
+// #define PWR1_EN_PIN							GPIOA, LL_GPIO_PIN_8  // GPIOB, LL_GPIO_PIN_0
 #define PWR2_EN_PIN							GPIOB, LL_GPIO_PIN_7
 #define DE1_PIN									GPIOA, LL_GPIO_PIN_10
 #define DE2_PIN									GPIOA, LL_GPIO_PIN_1

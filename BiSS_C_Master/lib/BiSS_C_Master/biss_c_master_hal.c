@@ -21,19 +21,23 @@
 #include "stm32g4xx_ll_usart.h"
 #include "stm32g4xx_ll_bus.h"
 #include "stm32g4xx_ll_rcc.h"
+#include "stm32g4xx_ll_adc.h"
 #include "uart.h"
 #include "string.h"
 
 #define SPI_CR1_BISS_CDM    SPI_CR1_SSI | SPI_CR1_SPE | SPI_CR1_MSTR | SPI_CR1_SSM | ((0x5U << SPI_CR1_BR_Pos) & SPI_CR1_BR_Msk)
 #define SPI_CR1_BISS_nCDM   SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BISS_CDM
-
-// #define SPI_CR1_BISS_START_IRS_CDM    SPI_CR1_SSI | SPI_CR1_SPE | SPI_CR1_MSTR | SPI_CR1_SSM | ((0x7U << SPI_CR1_BR_Pos) & SPI_CR1_BR_Msk)
-// #define SPI_CR1_BISS_START_IRS_nCDM   SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_BISS_START_IRS_CDM
-
 #define SPI_CR2_BISS_CFG		SPI_CR2_RXDMAEN |SPI_CR2_TXDMAEN | SPI_CR2_FRXTH | (0x7U << SPI_CR2_DS_Pos)
 
 #define RX_BUF_SIZE 252U
 #define TX_BUF_SIZE 252U
+#define ADC_BUF_SIZE 1U
+#define VREF	3300U
+#define ADC_MAX	4095U
+#define CURRENT_GAIN 101753U
+
+
+// #define PWR1_EN_PIN		GPIOA, LL_GPIO_PIN_8
 
 static volatile enum {RS485_ADR1, RS485_ADR2} RS485_ADR = RS485_ADR2;
 static volatile uint8_t adr_reset_cou = 0;
@@ -64,11 +68,6 @@ typedef union{
 	};
 }SPI_rx_t;
 
-/*
-typedef union{
-}SPI_tx_t;
-*/
-
 typedef union{
 	volatile uint32_t u32;
 	struct{
@@ -91,18 +90,17 @@ typedef enum{
 }CRC_State_t;
 
 volatile uint32_t SSI_HALF_FREQ_FLAG = 0;
-
 uint8_t usart2_tx_buffer[TX_BUF_SIZE] = {0};
 volatile uint8_t usart2_rx_buffer[RX_BUF_SIZE] = {0};
-// uint8_t usart2_rx_buffer[RX_BUF_SIZE] = {0};
+volatile uint16_t adc1_buffer[ADC_BUF_SIZE] = {0};
 SPI_rx_t BiSS1_SPI_rx;
 SPI_rx_t BiSS2_SPI_rx;
-//SPI_tx_t BiSS2_SPI_tx_buf;
 USART_rx_t USART_rx;
-// volatile uint8_t biss_rx_buffer[5] = {0};
 
 volatile BISS_Mode_t Current_Mode = BISS_MODE_SPI_SPI; // BISS_MODE_SPI_SPI or BISS_MODE_AB_UART or BISS_MODE_SPI_UART_IRS or BISS_MODE_AB_SPI
 volatile BiSS_SPI_Ch_t BiSS_SPI_Ch = BISS_SPI_CH_2; // BISS_SPI_CH_1 or BISS_SPI_CH_2
+volatile Current_Sensor_Mode_t Current_Sensor_Mode = CURRENT_SENSOR_MODE_ENABLE; // CURRENT_SENSOR_MODE_ENABLE CURRENT_SENSOR_MODE_DISABLE
+volatile PinDef PWR1_EN_PIN = {GPIOA, LL_GPIO_PIN_8};
 
 volatile CDS_t USART_CDS_last = CDS;
 volatile uint32_t BISS1_SCD;
@@ -162,6 +160,9 @@ static void USART2_UART_Init(void);
 static void MX_TIM3_ENC_Init(void);
 static void Quadrature_Renishaw_Init(void);
 static void Quadrature_Renishaw_DeInit(void);
+static void MX_ADC1_Init(void);
+static void Config_ADC1(void);
+static void ADC1_DeInit(void);
 
 static void LED1TurnRed(void){
 	LL_GPIO_SetOutputPin(LED1_GREEN);
@@ -274,7 +275,7 @@ void BissRequest_nCDM(void){
 		case BISS_MODE_AB_UART:
 			LL_DMA_DisableChannel(DMA_BISS2_UART_RX);
 			LL_DMA_SetDataLength(DMA_BISS2_UART_RX, 4U);
-			LL_DMA_EnableChannel(DMA_BISS2_UART_RX);	 
+			LL_DMA_EnableChannel(DMA_BISS2_UART_RX);
 			switch(RS485_ADR){
 				case RS485_ADR1:
 					LL_USART_TransmitData8(BISS2_UART, RS485_nCDM_ADR1_REQ);
@@ -476,6 +477,17 @@ void BISS_Task_IRQHandler(void) {
 	UART_StateMachine();
 }
 
+void Current_Sensor_Init(void){
+	switch(Current_Sensor_Mode){
+		case CURRENT_SENSOR_MODE_ENABLE:
+			MX_ADC1_Init();
+			Config_ADC1();
+			break;
+		case CURRENT_SENSOR_MODE_DISABLE:
+			ADC1_DeInit();
+			break;
+	}
+}
 
 void BiSS_C_Master_HAL_Init(void){
 	LED1TurnRed();
@@ -582,8 +594,8 @@ static void BISS1_SPI_Init(void)
 	DE1_PIN		------>						------>	PA10
   */	
 	
-	LL_GPIO_SetOutputPin(PWR1_EN_PIN);
-	LL_GPIO_SetPinMode(PWR1_EN_PIN, LL_GPIO_MODE_OUTPUT);
+	LL_GPIO_SetOutputPin(PWR1_EN_PIN.port, PWR1_EN_PIN.pin);
+	LL_GPIO_SetPinMode(PWR1_EN_PIN.port, PWR1_EN_PIN.pin, LL_GPIO_MODE_OUTPUT);
 	LL_GPIO_SetPinOutputType(DE1_PIN, LL_GPIO_OUTPUT_PUSHPULL);
 	
 	GPIO_InitStruct.Pin = LL_GPIO_PIN_10;
@@ -1111,9 +1123,219 @@ static void MX_TIM3_ENC_Init(void)
 
 }
 
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  LL_ADC_InitTypeDef ADC_InitStruct = {0};
+  LL_ADC_REG_InitTypeDef ADC_REG_InitStruct = {0};
+  LL_ADC_CommonInitTypeDef ADC_CommonInitStruct = {0};
+
+  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  LL_RCC_SetADCClockSource(LL_RCC_ADC12_CLKSOURCE_SYSCLK);
+
+  /* Peripheral clock enable */
+  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_ADC12);
+
+  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
+  /**ADC1 GPIO Configuration
+  PA0   ------> ADC1_IN1
+	PB0   ------> ADC1_IN15
+  */
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_0;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+	
+	GPIO_InitStruct.Pin = LL_GPIO_PIN_0;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  /* USER CODE BEGIN ADC1_Init 1 */
+	
+	/* ADC1_DMA1 Init */
+  LL_DMA_SetPeriphRequest(DMA1, LL_DMA_CHANNEL_6, LL_DMAMUX_REQ_ADC1);
+
+  LL_DMA_SetDataTransferDirection(DMA1, LL_DMA_CHANNEL_6, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
+
+  LL_DMA_SetChannelPriorityLevel(DMA1, LL_DMA_CHANNEL_6, LL_DMA_PRIORITY_LOW);
+
+  LL_DMA_SetMode(DMA1, LL_DMA_CHANNEL_6, LL_DMA_MODE_CIRCULAR);
+
+  LL_DMA_SetPeriphIncMode(DMA1, LL_DMA_CHANNEL_6, LL_DMA_PERIPH_NOINCREMENT);
+
+  LL_DMA_SetMemoryIncMode(DMA1, LL_DMA_CHANNEL_6, LL_DMA_MEMORY_INCREMENT);
+
+  LL_DMA_SetPeriphSize(DMA1, LL_DMA_CHANNEL_6, LL_DMA_PDATAALIGN_HALFWORD);
+
+  LL_DMA_SetMemorySize(DMA1, LL_DMA_CHANNEL_6, LL_DMA_MDATAALIGN_HALFWORD);
+	
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Common config
+  */
+  ADC_InitStruct.Resolution = LL_ADC_RESOLUTION_12B;
+  ADC_InitStruct.DataAlignment = LL_ADC_DATA_ALIGN_RIGHT;
+  ADC_InitStruct.LowPowerMode = LL_ADC_LP_MODE_NONE;
+  LL_ADC_Init(ADC1, &ADC_InitStruct);
+	
+  ADC_REG_InitStruct.TriggerSource = LL_ADC_REG_TRIG_SOFTWARE;
+  ADC_REG_InitStruct.SequencerLength = LL_ADC_REG_SEQ_SCAN_DISABLE;
+  ADC_REG_InitStruct.SequencerDiscont = LL_ADC_REG_SEQ_DISCONT_DISABLE;
+  ADC_REG_InitStruct.ContinuousMode = LL_ADC_REG_CONV_CONTINUOUS; // LL_ADC_REG_CONV_SINGLE 
+  ADC_REG_InitStruct.DMATransfer = LL_ADC_REG_DMA_TRANSFER_NONE;
+  ADC_REG_InitStruct.Overrun = LL_ADC_REG_OVR_DATA_OVERWRITTEN; // LL_ADC_REG_OVR_DATA_PRESERVED
+  LL_ADC_REG_Init(ADC1, &ADC_REG_InitStruct);
+	
+  LL_ADC_SetGainCompensation(ADC1, 0);
+  LL_ADC_SetOverSamplingScope(ADC1, LL_ADC_OVS_GRP_REGULAR_CONTINUED);
+  LL_ADC_ConfigOverSamplingRatioShift(ADC1, LL_ADC_OVS_RATIO_256, LL_ADC_OVS_SHIFT_RIGHT_4);
+	LL_ADC_SetOverSamplingDiscont(ADC1, LL_ADC_OVS_SHIFT_RIGHT_4);
+
+  ADC_CommonInitStruct.CommonClock = LL_ADC_CLOCK_SYNC_PCLK_DIV4;
+  ADC_CommonInitStruct.Multimode = LL_ADC_MULTI_INDEPENDENT;
+  LL_ADC_CommonInit(__LL_ADC_COMMON_INSTANCE(ADC1), &ADC_CommonInitStruct);
+
+  /* Disable ADC deep power down (enabled by default after reset state) */
+  LL_ADC_DisableDeepPowerDown(ADC1);
+  /* Enable ADC internal voltage regulator */
+  LL_ADC_EnableInternalRegulator(ADC1);
+  /* Delay for ADC internal voltage regulator stabilization. */
+  /* Compute number of CPU cycles to wait for, from delay in us. */
+  /* Note: Variable divided by 2 to compensate partially */
+  /* CPU processing cycles (depends on compilation optimization). */
+  /* Note: If system core clock frequency is below 200kHz, wait time */
+  /* is only a few CPU processing cycles. */
+  volatile uint32_t wait_loop_index;
+  wait_loop_index = ((LL_ADC_DELAY_INTERNAL_REGUL_STAB_US * (SystemCoreClock / (100000 * 2))) / 10);
+  while(wait_loop_index != 0)
+  {
+    wait_loop_index--;
+  }
+
+  /** Configure Regular Channel
+  */
+	// LL_ADC_REG_SetContinuousMode(ADC1, LL_ADC_REG_CONV_CONTINUOUS);
+  LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_15);
+  LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_15, LL_ADC_SAMPLINGTIME_2CYCLES_5);
+  LL_ADC_SetChannelSingleDiff(ADC1, LL_ADC_CHANNEL_15, LL_ADC_SINGLE_ENDED);
+  /* USER CODE BEGIN ADC1_Init 2 */
+	
+	/* GPIO Init PA8 PIN
+	PA8   ------> En1 
+	*/
+	GPIO_InitStruct.Pin = LL_GPIO_PIN_8;
+	GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+	GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+	GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+	GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+	LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+	/* Set Enc1 power to PA8 PIN */
+	PWR1_EN_PIN.port = GPIOA;
+	PWR1_EN_PIN.pin = LL_GPIO_PIN_8;
+	/* Enable PA8 PIN */
+	LL_GPIO_SetOutputPin(PWR1_EN_PIN.port, PWR1_EN_PIN.pin);
+
+  /* USER CODE END ADC1_Init 2 */
+
+}
+
+static void Config_ADC1(void)
+{
+	/* Set DMA buffer length and address */ 
+	LL_DMA_SetMemoryAddress(DMA_ADC1, (uint32_t)&adc1_buffer);
+	LL_DMA_SetPeriphAddress(DMA_ADC1, (uint32_t)&ADC1->DR);
+	LL_DMA_SetDataLength(DMA_ADC1, ADC_BUF_SIZE);
+	
+	/* Enable DMA channel */
+	LL_DMA_EnableChannel(DMA_ADC1);
+	
+	/* Enable DMA for ADC1 unlimited transfer */
+	LL_ADC_REG_SetDMATransfer(ADC1, LL_ADC_REG_DMA_TRANSFER_UNLIMITED);
+	
+	/* Start calibration for ADC1 */
+	LL_ADC_StartCalibration(ADC1, LL_ADC_SINGLE_ENDED);
+  while(LL_ADC_IsCalibrationOnGoing(ADC1));
+	/* Wait 4 ADC clock cycles */ 
+	volatile uint32_t wait_loop_index = 4;
+	while(wait_loop_index != 0) {
+    wait_loop_index--;
+  }
+	
+	/* Enable ADC1 and start conversion */
+  LL_ADC_Enable(ADC1);
+	while(!LL_ADC_IsActiveFlag_ADRDY(ADC1));
+	LL_ADC_REG_StartConversion(ADC1);
+}
+
+static void ADC1_DeInit(void)
+{
+	/* Disable ADC1 */
+	LL_ADC_REG_StopConversion(ADC1);
+	
+	if(LL_ADC_IsEnabled(ADC1))
+	{
+			LL_ADC_Disable(ADC1);
+			while(LL_ADC_IsEnabled(ADC1) != 0);
+	}
+	
+	LL_ADC_DisableInternalRegulator(ADC1);
+
+	LL_ADC_DisableDeepPowerDown(ADC1);
+
+	LL_ADC_DeInit(ADC1);
+
+	LL_AHB2_GRP1_DisableClock(LL_AHB2_GRP1_PERIPH_ADC12);
+	
+	LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+	/* GPIO Init PB0 PIN
+	PB0   ------> En1 
+	*/
+	GPIO_InitStruct.Pin = LL_GPIO_PIN_0;
+	GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+	GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+	GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+	GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+	LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+	/* Set Enc1 power to PB0 PIN */
+	PWR1_EN_PIN.port = GPIOB;
+	PWR1_EN_PIN.pin = LL_GPIO_PIN_0;
+	/* Enable PB0 PIN */
+	LL_GPIO_SetOutputPin(PWR1_EN_PIN.port, PWR1_EN_PIN.pin);
+	
+	/* GPIO Init PA8 PIN */
+	GPIO_InitStruct.Pin = LL_GPIO_PIN_8;
+	GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
+	GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+	LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+	/* Disable PA8 PIN */
+	LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_8);
+	/* Disable DMA for ADC1 */
+	LL_DMA_DisableChannel(DMA_ADC1);
+	/* Clear ADC buffer */
+	memset((void*)adc1_buffer, 0, ADC_BUF_SIZE*sizeof(adc1_buffer[0]));
+}
+
+int32_t Read_Current_Enc2(void){
+	uint16_t adc_value = adc1_buffer[0] >> 4;
+	if (adc_value > ADC_MAX){
+				adc_value = ADC_MAX; // Prevent overflow
+	}
+	return (((adc_value * VREF) / ADC_MAX) * CURRENT_GAIN) / 1000;
+}
+
 static void Quadrature_Renishaw_Init(void){
 	LL_GPIO_ResetOutputPin(DE1_PIN);
-	LL_GPIO_SetOutputPin(PWR1_EN_PIN);
+	LL_GPIO_SetOutputPin(PWR1_EN_PIN.port, PWR1_EN_PIN.pin);
 	LL_TIM_SetCounter(TIM_RENISHAW, 0);
 	LL_TIM_EnableCounter(TIM_RENISHAW);
 }
@@ -1123,7 +1345,7 @@ static void BISS1_SPI_DeInit(void){
 	LL_GPIO_SetPinMode(MA1_PIN, LL_GPIO_MODE_ANALOG);
 	LL_GPIO_SetPinMode(SLO1_PIN, LL_GPIO_MODE_ANALOG);
 	LL_GPIO_SetPinMode(SLO1_PIN, LL_GPIO_MODE_ANALOG);
-	LL_GPIO_ResetOutputPin(PWR1_EN_PIN);
+	LL_GPIO_ResetOutputPin(PWR1_EN_PIN.port, PWR1_EN_PIN.pin);
 	LL_GPIO_ResetOutputPin(DE1_PIN);
 	LL_SPI_Disable(BISS1_SPI);
 	LL_SPI_Disable(BISS1_SPI);
@@ -1159,7 +1381,7 @@ static void Quadrature_Renishaw_DeInit(void){
 	LL_GPIO_SetPinMode(GPIOA, LL_GPIO_PIN_4, LL_GPIO_MODE_ANALOG);
 	LL_GPIO_SetPinMode(GPIOA, LL_GPIO_PIN_6, LL_GPIO_MODE_ANALOG);
 	LL_GPIO_SetPinMode(GPIOA, LL_GPIO_PIN_6, LL_GPIO_MODE_ANALOG);
-	LL_GPIO_ResetOutputPin(PWR1_EN_PIN);
+	LL_GPIO_ResetOutputPin(PWR1_EN_PIN.port, PWR1_EN_PIN.pin);
 	LL_GPIO_ResetOutputPin(DE1_PIN);
 	LL_TIM_DisableCounter(TIM_RENISHAW);
 	LL_TIM_DisableCounter(TIM_RENISHAW);
@@ -1215,5 +1437,14 @@ void Change_Current_Mode(BISS_Mode_t New_Mode){
 		BiSS_C_Master_HAL_Init();
 	} else if(Current_Mode == BISS_MODE_AB_SPI){
 		BiSS_C_Master_HAL_Init();
+	}
+}
+
+void Change_Current_Sensor_Mode(Current_Sensor_Mode_t New_Mode){
+	Current_Sensor_Mode = New_Mode;
+	if(Current_Sensor_Mode == CURRENT_SENSOR_MODE_ENABLE){
+		Current_Sensor_Init();
+	} else if(Current_Sensor_Mode == CURRENT_SENSOR_MODE_DISABLE){
+		Current_Sensor_Init();
 	}
 }
