@@ -24,6 +24,13 @@ typedef enum{
 extern volatile BISS_Mode_t Current_Mode;
 
 typedef enum{
+	CH1_SSI_HALF_FREQ = 0,
+	CH1_SSI_FULL_FREQ = 1,
+} CH1_SSI_t;
+
+extern volatile CH1_SSI_t CH1_SSI;
+
+typedef enum{
 	CURRENT_SENSOR_MODE_DISABLE = 0,
 	CURRENT_SENSOR_MODE_ENABLE = 1,
 } Current_Sensor_Mode_t;

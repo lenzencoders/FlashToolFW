@@ -99,6 +99,7 @@ USART_rx_t USART_rx;
 
 volatile BISS_Mode_t Current_Mode = BISS_MODE_DEFAULT_SPI; // BISS_MODE_SPI_SPI or BISS_MODE_AB_UART or BISS_MODE_SPI_UART_IRS or BISS_MODE_AB_SPI or BISS_MODE_DEFAULT_SPI
 volatile BiSS_SPI_Ch_t BiSS_SPI_Ch = BISS_SPI_CH_2; // BISS_SPI_CH_1 or BISS_SPI_CH_2
+volatile CH1_SSI_t CH1_SSI = CH1_SSI_FULL_FREQ;
 volatile Current_Sensor_Mode_t Current_Sensor_Mode = CURRENT_SENSOR_MODE_ENABLE; // CURRENT_SENSOR_MODE_ENABLE CURRENT_SENSOR_MODE_DISABLE
 volatile PinDef PWR1_EN_PIN = {GPIOA, LL_GPIO_PIN_8};
 
@@ -187,14 +188,18 @@ static void BiSS1_SPI_nCDM_Req(void){
 	LL_SPI_DeInit(BISS1_SPI);
 	BISS1_SPI->CR1 = SPI_CR1_BISS_nCDM;
 	BISS1_SPI->CR2 = SPI_CR2_BISS_CFG;
-	#ifdef CH1_SSI
- 	LL_SPI_SetBaudRatePrescaler(BISS1_SPI, LL_SPI_BAUDRATEPRESCALER_DIV128);
- 	LL_DMA_SetDataLength(DMA_BISS1_TX, 3U); 
- 	LL_DMA_SetDataLength(DMA_BISS1_RX, 3U); 
-	#else
-	LL_DMA_SetDataLength(DMA_BISS1_TX, 5U); // TODO try 1U via define
-	LL_DMA_SetDataLength(DMA_BISS1_RX, 5U); // TODO try 1U via define
-	#endif
+	// #ifdef CH1_SSI
+	if(CH1_SSI == CH1_SSI_HALF_FREQ){
+		LL_SPI_SetBaudRatePrescaler(BISS1_SPI, LL_SPI_BAUDRATEPRESCALER_DIV128);
+		LL_DMA_SetDataLength(DMA_BISS1_TX, 3U); 
+		LL_DMA_SetDataLength(DMA_BISS1_RX, 3U); 
+	} 
+	else if(CH1_SSI == CH1_SSI_FULL_FREQ){
+		// #else
+		LL_DMA_SetDataLength(DMA_BISS1_TX, 5U); // TODO try 1U via define
+		LL_DMA_SetDataLength(DMA_BISS1_RX, 5U); // TODO try 1U via define
+		// #endif
+	}
 	LL_DMA_EnableChannel(DMA_BISS1_TX);	 
 	LL_DMA_EnableChannel(DMA_BISS1_RX);		
 }
@@ -303,44 +308,49 @@ void BISS_Task_IRQHandler(void) {
 	LL_TIM_ClearFlag_UPDATE(BISS_Task_TIM);
 	switch(Current_Mode){
 		case BISS_MODE_SPI_SPI:
-			#ifdef CH1_SSI
- 			(void) BiSS1_SPI_rx;
- 			uint32_t rev_temp = __REV(*(uint32_t *)&BiSS1_SPI_rx.buf[0]);		
- 			if((rev_temp & 0xC00000) == 0x400000){
- 				CRC6_State1 = CRC6_OK;
- 				LED1TurnGreen();
- 				AngleData1.angle_data = (rev_temp << 2) & 0xFFFF80;
- 				AngleData1.time_of_life_counter++;
- 			}
- 			else{
- 				LED1TurnRed();
- 				CRC6_State1 = CRC6_FAULT;
- 			}
-			if(SSI_HALF_FREQ_FLAG > 0){
- 				SSI_HALF_FREQ_FLAG = 0;
- 				BiSS1_SPI_nCDM_Req();
- 			}
- 			else{
- 				SSI_HALF_FREQ_FLAG = 1;
- 			}
-			#else
-			BISS1_SCD = __REV(BiSS1_SPI_rx.revSCD);
-			if(BISS_CRC6_Calc(BISS1_SCD >> 6) == (BISS1_SCD & 0x3FU)){
-				CRC6_State1 = CRC6_OK;
-				AngleData1.angle_data = BISS1_SCD >> 8;
-				AngleData1.time_of_life_counter++;
-				if(((BISS1_SCD >> 6) & 0x3) == 0x3){
- 					LED1TurnGreen();
- 				}
- 				else{
- 					LED1TurnRed();
- 				}
+			if(CH1_SSI == CH1_SSI_HALF_FREQ){
+				// #ifdef CH1_SSI
+				(void) BiSS1_SPI_rx;
+				uint32_t rev_temp = __REV(*(uint32_t *)&BiSS1_SPI_rx.buf[0]);		
+				if((rev_temp & 0xC00000) == 0x400000){
+					CRC6_State1 = CRC6_OK;
+					LED1TurnGreen();
+					AngleData1.angle_data = (rev_temp << 2) & 0xFFFF80;
+					AngleData1.time_of_life_counter++;
+				}
+				else{
+					LED1TurnRed();
+					CRC6_State1 = CRC6_FAULT;
+				}
+				if(SSI_HALF_FREQ_FLAG > 0){
+					SSI_HALF_FREQ_FLAG = 0;
+					BiSS1_SPI_nCDM_Req();
+				}
+				else{
+					SSI_HALF_FREQ_FLAG = 1;
+				}
 			}
-			else{
-				LED1TurnRed();
-				CRC6_State1 = CRC6_FAULT;
+			else if(CH1_SSI == CH1_SSI_FULL_FREQ){
+				// #else
+				BISS1_SCD = __REV(BiSS1_SPI_rx.revSCD);
+				if(BISS_CRC6_Calc(BISS1_SCD >> 6) == (BISS1_SCD & 0x3FU)){
+					CRC6_State1 = CRC6_OK;
+					AngleData1.angle_data = BISS1_SCD >> 8;
+					AngleData1.time_of_life_counter++;
+					if(((BISS1_SCD >> 6) & 0x3) == 0x3){
+						LED1TurnGreen();
+					}
+					else{
+						LED1TurnRed();
+					}
+				}
+				else{
+					LED1TurnRed();
+					CRC6_State1 = CRC6_FAULT;
+				}
+				// #endif
 			}
-			#endif
+			
 			BISS2_SCD = __REV(BiSS2_SPI_rx.revSCD);
 			if(BISS_CRC6_Calc(BISS2_SCD >> 6) == (BISS2_SCD & 0x3FU)){
 				CRC6_State2 = CRC6_OK;
@@ -359,15 +369,17 @@ void BISS_Task_IRQHandler(void) {
 			}					
 			switch(BiSS_SPI_Ch){
 				case BISS_SPI_CH_1:
-					#ifndef CH1_SSI
-					if (BiSS_C_Master_StateMachine(BiSS1_SPI_rx.CDS) == CDM) {					
-						BiSS1_SPI_CDM_Req();
+					if(CH1_SSI == CH1_SSI_FULL_FREQ){
+						// #ifndef CH1_SSI
+						if (BiSS_C_Master_StateMachine(BiSS1_SPI_rx.CDS) == CDM) {					
+							BiSS1_SPI_CDM_Req();
+						}
+						else{
+							BiSS1_SPI_nCDM_Req();
+						}
+						BiSS2_SPI_nCDM_Req();
+						// #endif
 					}
-					else{
-						BiSS1_SPI_nCDM_Req();
-					}
-					BiSS2_SPI_nCDM_Req();
-					#endif
 					break;
 				case BISS_SPI_CH_2:
 					if (BiSS_C_Master_StateMachine(BiSS2_SPI_rx.CDS) == CDM) {					
@@ -376,14 +388,18 @@ void BISS_Task_IRQHandler(void) {
 					else{
 						BiSS2_SPI_nCDM_Req();
 					}
-					#ifndef CH1_SSI
-					BiSS1_SPI_nCDM_Req();
-					#endif
+					if(CH1_SSI == CH1_SSI_FULL_FREQ){
+						// #ifndef CH1_SSI
+						BiSS1_SPI_nCDM_Req();
+						// #endif
+					}
 					break;
 				default:
-					#ifndef CH1_SSI
-					BiSS1_SPI_nCDM_Req();
-					#endif
+					if(CH1_SSI == CH1_SSI_FULL_FREQ){
+						// #ifndef CH1_SSI
+						BiSS1_SPI_nCDM_Req();
+						// #endif
+					}
 					BiSS2_SPI_nCDM_Req();
 					break;
 			}
@@ -397,10 +413,10 @@ void BISS_Task_IRQHandler(void) {
 					AngleData2.time_of_life_counter++;
 					LED2TurnGreen();
 				}
-				else{
+				else {
 					LED2TurnRed();
 					CRC6_State2 = CRC6_FAULT;
-				}				
+				}		
 				if (BiSS_C_Master_StateMachine(USART_CDS_last) == CDM) {
 					BissRequest_CDM();
 					last_CDM = CDM;
@@ -408,24 +424,24 @@ void BISS_Task_IRQHandler(void) {
 				else {
 					BissRequest_nCDM();
 					last_CDM = nCDM;
-				}	
+				}
 				USART_CDS_last = (CDS_t)USART_rx.CDS;
 				adr_reset_cou = 0;
 			}
 			else{
 				LED2TurnRed();
 				adr_reset_cou++;
-				if(adr_reset_cou == 255){
+				if(adr_reset_cou == 255) {
 					RS485_ADR = RS485_ADR == RS485_ADR1? RS485_ADR2 : RS485_ADR1;
 				}
-				if(last_CDM == CDM){
+				if(last_CDM == CDM) {
 					BissRequest_CDM();
 				}
 				else {
 					BissRequest_nCDM();
-				}						
+				}
 			}
-			if (LL_TIM_IsActiveFlag_UPDATE(TIM_RENISHAW)){
+			if (LL_TIM_IsActiveFlag_UPDATE(TIM_RENISHAW)) {
 				AngleDataRenishaw.angle_data = LL_TIM_GetCounter(TIM_RENISHAW);
 				LED1TurnGreen();
 			} else {
@@ -438,15 +454,14 @@ void BISS_Task_IRQHandler(void) {
 			
 		case BISS_MODE_AB_SPI:
 			BISS2_SCD = __REV(BiSS2_SPI_rx.revSCD);
-			if(BISS_CRC6_Calc(BISS2_SCD >> 6) == (BISS2_SCD & 0x3FU)){
+			if(BISS_CRC6_Calc(BISS2_SCD >> 6) == (BISS2_SCD & 0x3FU)) {
 				CRC6_State2 = CRC6_OK;
 				AngleData2.angle_data = BISS2_SCD >> 8;
 				AngleData2.time_of_life_counter++;
-				// LED2TurnGreen();
-				if(((BISS2_SCD >> 6) & 0x3) == 0x3){
+				if(((BISS2_SCD >> 6) & 0x3) == 0x3) {
  					LED2TurnGreen();
  				}
- 				else{
+ 				else {
  					LED2TurnRed();
  				}
 			}
@@ -697,11 +712,15 @@ static void BISS1_SPI_Init(void)
 	/* Init setup DMA/SPI */
 	LL_SPI_Disable(BISS1_SPI);
 	LL_DMA_SetPeriphAddress(DMA_BISS1_RX, (uint32_t) &BISS1_SPI->DR);
-	#ifdef CH1_SSI
-	LL_DMA_SetMemoryAddress(DMA_BISS1_RX, (uint32_t) &BiSS1_SPI_rx.buf[1]);
-	#else
- 	LL_DMA_SetMemoryAddress(DMA_BISS1_RX, (uint32_t) &BiSS1_SPI_rx.buf[3]);
-	#endif
+	if(CH1_SSI == CH1_SSI_HALF_FREQ){
+		// #ifdef CH1_SSI
+		LL_DMA_SetMemoryAddress(DMA_BISS1_RX, (uint32_t) &BiSS1_SPI_rx.buf[1]);
+	} 
+	else if(CH1_SSI == CH1_SSI_FULL_FREQ){
+		// #else
+		LL_DMA_SetMemoryAddress(DMA_BISS1_RX, (uint32_t) &BiSS1_SPI_rx.buf[3]);
+		// #endif
+	}
 	LL_DMA_SetDataLength(DMA_BISS1_RX, 5);	
 	LL_DMA_SetPeriphAddress(DMA_BISS1_TX, (uint32_t) &BISS1_SPI->DR);
 	LL_DMA_SetDataLength(DMA_BISS1_TX, 5);	
@@ -1429,11 +1448,19 @@ static void BISS_USART2_DeInit(void){
 }
 
 void SetBiSS_SPI_Ch(BiSS_SPI_Ch_t ch_to_set){
-	#ifndef CH1_SSI
-	if(IsBiSSReqBusy() == BISS_REQ_OK){
-		BiSS_SPI_Ch = ch_to_set;
+	// #ifndef CH1_SSI
+	if(CH1_SSI == CH1_SSI_FULL_FREQ){
+		if(IsBiSSReqBusy() == BISS_REQ_OK){
+			BiSS_SPI_Ch = ch_to_set;
+		}	
 	}	
-	#endif
+	// #endif
+}
+
+void SetCh1SSIFreq(CH1_SSI_t freq_to_set){
+	if(IsBiSSReqBusy() == BISS_REQ_OK){
+		CH1_SSI = freq_to_set;
+	}
 }
 
 void Stop_Current_Mode(void){

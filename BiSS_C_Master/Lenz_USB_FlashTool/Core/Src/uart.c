@@ -450,6 +450,21 @@ void UART_StateMachine(void) {
 										queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
 										queue_cnt--;
 										break;
+										
+								case UART_COMMAND_CHANGE_CH1_SSI_FREQ:
+									if (cmd_data[0] == 0) {
+											if (CH1_SSI != CH1_SSI_HALF_FREQ) {
+												SetCh1SSIFreq(CH1_SSI_HALF_FREQ);
+											}
+										} else if (cmd_data[0] == 1) {
+											if (BiSS_SPI_Ch != CH1_SSI_FULL_FREQ){
+												SetCh1SSIFreq(CH1_SSI_FULL_FREQ);
+											}
+										}
+										UART_State = UART_STATE_IDLE;
+										queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
+										queue_cnt--;
+									break;
 									
 								case UART_COMMAND_WRITE_REG:
 									if (IsBiSSReqBusy() != BISS_BUSY) {
