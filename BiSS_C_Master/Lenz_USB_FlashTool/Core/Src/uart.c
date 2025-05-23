@@ -367,6 +367,10 @@ void UART_StateMachine(void) {
 										if (Current_Mode != BISS_MODE_AB_SPI){
 											Change_Current_Mode(BISS_MODE_AB_SPI);
 										}
+									} else if (cmd_data[0] == 4) {
+										if (Current_Mode != BISS_MODE_DEFAULT_SPI){
+											Change_Current_Mode(BISS_MODE_DEFAULT_SPI);
+										}
 									}
 									UART_State = UART_STATE_IDLE;
 									queue_read_cnt = (queue_read_cnt + 1U) % QUEUE_SIZE;
@@ -538,10 +542,8 @@ void UART_StateMachine(void) {
 										UART_State = UART_STATE_IDLE;
 									break;
 								
-								case UART_COMMAND_READ_ANGLE_IRS_ENC_SPI:
 								case UART_COMMAND_READ_ANGLE_ENC_SPI_CURRENT:
 										UART_TX.cmd = command;
-										// UART_TX.len = ANGLE_SIZE;
 										UART_TX.len = cmd_data_len;
 										UART_TX.adr_h = 0;
 										UART_TX.adr_l = 0;

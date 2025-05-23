@@ -17,7 +17,8 @@ typedef enum{
 	BISS_MODE_SPI_SPI = 0,
 	BISS_MODE_AB_UART = 1u,
 	BISS_MODE_SPI_UART_IRS = 2u,
-	BISS_MODE_AB_SPI = 3u,  // TODO
+	BISS_MODE_AB_SPI = 3u,
+	BISS_MODE_DEFAULT_SPI = 4u,
 } BISS_Mode_t;
 
 extern volatile BISS_Mode_t Current_Mode;
